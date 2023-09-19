@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "permanent-chat-logs",
+	"version": "${version}",
+	"name": "Permanent Chat Logs",
+	"description": "Save chating logs grouped by sessions permanently.",
+	"authors": [
+		"lovexyn0827"
+	],
+	"contact": {
+		"homepage": "https://github.com/lovexyn0827/PermanentChatLogs",
+		"sources": "https://github.com/lovexyn0827/PermanentChatLogs"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/permanent-chat-logs/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"lovexyn0827.chatlog.PermanentChatLogMod"
+		]
+	},
+	"mixins": [
+		"permanent-chat-logs.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.8",
+		"minecraft": "*"
+	},
+	"suggests": {
+	}
+}
