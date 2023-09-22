@@ -144,7 +144,7 @@ public final class ChatLogScreen extends Screen {
 									hasHoverText = true;
 									Text text = he.getValue(HoverEvent.Action.SHOW_TEXT);
 									this.renderToolTip(ctx, tr, text, mouseX, mouseY);
-									ctx.drawHoverEvent(tr, style, mouseX, mouseY);
+									//ctx.drawHoverEvent(tr, style, mouseX, mouseY);
 								}
 							}
 							
