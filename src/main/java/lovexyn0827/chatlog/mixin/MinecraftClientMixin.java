@@ -5,6 +5,7 @@ import net.minecraft.world.gen.GeneratorOptions;
 import net.minecraft.world.level.LevelInfo;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -14,6 +15,9 @@ import net.minecraft.client.MinecraftClient;
 
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
+	@Shadow
+	private boolean paused;
+	
 	@Inject(
 			method = "createWorld", 
 			at = @At(value = "HEAD")
@@ -21,5 +25,22 @@ public abstract class MinecraftClientMixin {
 	private void onCreateWorld(String worldName, LevelInfo levelInfo, DynamicRegistryManager.Impl registryTracker, 
 			GeneratorOptions generatorOptions, CallbackInfo ci) {
 		Session.current = new Session(worldName);
+	}
+	
+	@Inject(
+			method = "disconnect()V", 
+			at = @At(value = "HEAD"))
+	private void onDisconnected(CallbackInfo ci) {
+		if(Session.current != null && Session.current.shouldSaveOnDisconnection) {
+			Session.current.saveAll();
+			Session.current = null;
+		}
+	}
+	
+	@Inject(method = "tick", at = @At("RETURN"))
+	private void onTicked(CallbackInfo ci) {
+		if(this.paused && Session.current != null) {
+			Session.current.autoSave();
+		}
 	}
 }

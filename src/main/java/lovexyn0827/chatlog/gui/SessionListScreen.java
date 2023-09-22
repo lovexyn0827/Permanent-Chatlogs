@@ -1,7 +1,10 @@
 package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.Session.Summary;
@@ -14,29 +17,38 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.MathHelper;
 
-public class SessionListScreen extends Screen {
+public final class SessionListScreen extends Screen {
 	private static final LiteralText PREVIOUS = new LiteralText("Prevoius");
 	private static final LiteralText NEXT = new LiteralText("Next");
 	private SessionList displayedSessions;
+	private final Predicate<Session.Summary> filterer;
 	
 	public SessionListScreen() {
 		super(new LiteralText("Chat Logs"));
-		if(Session.current != null) {
-			Session.current.saveAndClose();
-			Session.current = null;
-		}
+		this.filterer = (s) -> true;
+	}
+	
+	public SessionListScreen(Predicate<Session.Summary> filterer) {
+		super(new LiteralText("Chat Logs"));
+		this.filterer = filterer;
 	}
 	
 	@Override
 	protected void init() {
 		this.displayedSessions = new SessionList(this.client);
 		this.addChild(this.displayedSessions);
-		ButtonWidget prevBtn = new ButtonWidget(this.width / 2 + 8, this.height - 23, 120, 20, 
+		ButtonWidget prevBtn = new ButtonWidget(this.width / 2 - 128, this.height - 23, 120, 20, 
 				PREVIOUS, (btn) -> this.displayedSessions.turnPage(false));
-		ButtonWidget nextBtn = new ButtonWidget(this.width / 2 - 128, this.height - 23, 120, 20, 
+		ButtonWidget nextBtn = new ButtonWidget(this.width / 2 + 8, this.height - 23, 120, 20, 
 				NEXT, (btn) -> this.displayedSessions.turnPage(true));
+		ButtonWidget filterBtn = new ButtonWidget(2, 2, 60, 20, 
+				new LiteralText("Filter"), (btn) -> this.client.openScreen(new FilterSessionScreen()));
+		ButtonWidget settingBtn = new ButtonWidget(65, 2, 60, 20, 
+				new LiteralText("Sessings"), (btn) -> this.client.openScreen(new SettingScreen()));
 		this.addButton(prevBtn);
 		this.addButton(nextBtn);
+		this.addButton(filterBtn);
+		this.addButton(settingBtn);
 	}
 	
 	@Override
@@ -47,7 +59,11 @@ public class SessionListScreen extends Screen {
 	}
 	
 	private final class SessionList extends AlwaysSelectedEntryListWidget<SessionList.SessionEntry> {
-		private final List<Session.Summary> allSessions = Session.getSessionSummaries();
+		private final List<Session.Summary> allSessions = Session.getSessionSummaries()
+				.stream()
+				.filter(SessionListScreen.this.filterer)
+				.sorted((s1, s2) -> (int) (s2.startTime - s1.startTime))
+				.collect(Collectors.toList());
 		private List<Session.Summary> visibleSessions;
 		private int currentPage = 0;
 		
@@ -82,7 +98,8 @@ public class SessionListScreen extends Screen {
 			public SessionEntry(Session.Summary info) {
 				this.summary = info;
 				this.saveName = new LiteralText(info.saveName);
-				this.start = new LiteralText(Instant.ofEpochMilli(info.startTime).toString());
+				this.start = new LiteralText(Instant.ofEpochMilli(info.startTime)
+						.atZone(this.summary.timeZone.toZoneId()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 				long delta = (long) Math.floor((info.endTime - info.startTime) / 1000);
 				this.sizeAndTimeLength = new LiteralText(String.format("%d:%d:%d (%d Messages)", 
 						(int) Math.floor(delta / 3600), (int) Math.floor((delta % 3600) / 60), delta % 60, info.size));

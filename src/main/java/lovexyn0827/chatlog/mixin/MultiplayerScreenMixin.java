@@ -7,12 +7,13 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import lovexyn0827.chatlog.Session;
+import net.minecraft.client.gui.screen.multiplayer.MultiplayerScreen;
 import net.minecraft.client.gui.screen.multiplayer.MultiplayerServerListWidget;
 import net.minecraft.client.network.LanServerInfo;
 import net.minecraft.client.network.ServerInfo;
 
-@Mixin(MultiplayerServerListWidget.class)
-public class MultiplayerServerListWidgetMixin {
+@Mixin(MultiplayerScreen.class)
+public class MultiplayerScreenMixin {
 	@Shadow
 	protected MultiplayerServerListWidget serverListWidget;
 	

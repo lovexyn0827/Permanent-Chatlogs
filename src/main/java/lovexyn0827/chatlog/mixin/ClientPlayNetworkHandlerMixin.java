@@ -14,7 +14,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
 	@Inject(method = "onDisconnect",at = @At(value = "RETURN"))
 	private void onPlayerDisconnect(DisconnectS2CPacket packet, CallbackInfo ci) {
 		if(Session.current != null) {
-			Session.current.saveAndClose();
+			Session.current.saveAll();
 			Session.current = null;
 		}
 	}

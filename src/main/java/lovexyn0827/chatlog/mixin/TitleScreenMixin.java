@@ -5,6 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.gui.SessionListScreen;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
@@ -22,5 +23,6 @@ public class TitleScreenMixin extends Screen {
 	private void onInit(CallbackInfo ci) {
 		this.addButton(new ButtonWidget(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20, 
 				new LiteralText("Chat Logs"), (btn) -> this.client.openScreen(new SessionListScreen())));
+		Session.tryRestoreUnsaved();
 	}
 }
