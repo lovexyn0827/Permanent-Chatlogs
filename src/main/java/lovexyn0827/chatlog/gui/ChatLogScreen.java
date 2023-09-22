@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableList;
 import lovexyn0827.chatlog.Session;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
@@ -17,7 +17,6 @@ import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.ChatMessages;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
@@ -44,11 +43,11 @@ public final class ChatLogScreen extends Screen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		this.renderBackground(matrices);
-		this.chatlogs.render(matrices, mouseX, mouseY, delta);
-		this.searchField.render(matrices, mouseX, mouseY, delta);
-		super.render(matrices, mouseX, mouseY, delta);
+	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+		this.renderBackground(context);
+		this.chatlogs.render(context, mouseX, mouseY, delta);
+		this.searchField.render(context, mouseX, mouseY, delta);
+		super.render(context, mouseX, mouseY, delta);
 	}
 	
 	@Override
@@ -117,15 +116,15 @@ public final class ChatLogScreen extends Screen {
 			}
 			
 			@Override
-			public void render(MatrixStack ms, int j, int y, int x, 
+			public void render(DrawContext ctx, int j, int y, int x, 
 					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
-				tr.drawWithShadow(ms, this.line, x + 4, y, 0xFFFFFFFF);
-				DrawableHelper.fill(ms, x + 1, y, x + 3, y + 9, 0xFF31F38B);
+				ctx.drawTextWithShadow(tr, this.line, x + 4, y, 0xFFFFFFFF);
+				ctx.fill(x + 1, y, x + 3, y + 9, 0xFF31F38B);
 				if(hovering) {
 					if(mouseX - x < 4) {
 						String time = (this.time == 0L) ? "UNKNOWN TIME" : Instant.ofEpochMilli(this.time).toString();
-						this.renderToolTip(ms, tr, time, mouseX, mouseY);
+						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
 					} else {
 						double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
 						int pos = (int) Math.floor(mouseX - 4 * scale);
@@ -137,7 +136,8 @@ public final class ChatLogScreen extends Screen {
 								if(he.getAction() == HoverEvent.Action.SHOW_TEXT) {
 									hasHoverText = true;
 									Text text = he.getValue(HoverEvent.Action.SHOW_TEXT);
-									this.renderToolTip(ms, tr, text, mouseX, mouseY);
+									this.renderToolTip(ctx, tr, text, mouseX, mouseY);
+									ctx.drawHoverEvent(tr, style, mouseX, mouseY);
 								}
 							}
 							
@@ -145,7 +145,7 @@ public final class ChatLogScreen extends Screen {
 							if((ce = style.getClickEvent()) != null) {
 								ChatLogScreen.this.handleTextClick(style);
 								if(!hasHoverText) {
-									this.renderToolTip(ms, tr, ce.getValue(), mouseX, mouseY);
+									this.renderToolTip(ctx, tr, ce.getValue(), mouseX, mouseY);
 								}
 							}
 						}
@@ -154,14 +154,14 @@ public final class ChatLogScreen extends Screen {
 				}
 			}
 			
-			private void renderToolTip(MatrixStack ms, TextRenderer tr, String value, int mouseX, int mouseY) {
-				ChatLogScreen.this.renderOrderedTooltip(ms, 
-						ChatMessages.breakRenderedChatMessageLines(Text.literal(value), width / 2, tr), 
+			private void renderToolTip(DrawContext ctx, TextRenderer tr, String text, int mouseX, int mouseY) {
+				ctx.drawOrderedTooltip(tr, 
+						ChatMessages.breakRenderedChatMessageLines(Text.literal(text), width / 2, tr), 
 						mouseX, mouseY);
 			}
 
-			private void renderToolTip(MatrixStack ms, TextRenderer tr, Text text, int mouseX, int mouseY) {
-				ChatLogScreen.this.renderOrderedTooltip(ms, 
+			private void renderToolTip(DrawContext ctx, TextRenderer tr, Text text, int mouseX, int mouseY) {
+				ctx.drawOrderedTooltip(tr, 
 						ChatMessages.breakRenderedChatMessageLines(text, width / 2, tr), 
 						mouseX, mouseY);
 			}

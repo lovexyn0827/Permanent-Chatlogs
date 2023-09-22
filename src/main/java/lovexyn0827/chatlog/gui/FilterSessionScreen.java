@@ -10,10 +10,10 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import lovexyn0827.chatlog.Session;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.predicate.NumberRange.IntRange;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
@@ -102,24 +102,24 @@ public final class FilterSessionScreen extends Screen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
+	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		int width = this.client.getWindow().getScaledWidth();
 		int height = this.client.getWindow().getScaledHeight();
 		this.client.getTextureManager().bindTexture(new Identifier("textures/gui/demo_background.png"));
-		fill(matrices, (int) (width * 0.2F), (int) (height * 0.2F), 
+		ctx.fill((int) (width * 0.2F), (int) (height * 0.2F), 
 				(int) (width * 0.8F), (int) (height * 0.2F) + 108, 0xFF0F0F0F);
-		drawCenteredTextWithShadow(matrices, this.textRenderer, "Name", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, "Name", 
 				(int) (width * 0.27F), (int) (height * 0.25F), 0xFFFFFFFF);
-		drawCenteredTextWithShadow(matrices, this.textRenderer, "Date", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, "Date", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 18, 0xFFFFFFFF);
-		drawCenteredTextWithShadow(matrices, this.textRenderer, "Messages", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, "Messages", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 36, 0xFFFFFFFF);
-		drawCenteredTextWithShadow(matrices, this.textRenderer, "Seconds", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, "Seconds", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 54, 0xFFFFFFFF);
-		this.saveName.render(matrices, mouseX, mouseY, height);
-		this.date.render(matrices, mouseX, mouseY, height);
-		this.size.render(matrices, mouseX, mouseY, height);
-		this.seconds.render(matrices, mouseX, mouseY, height);
-		super.render(matrices, mouseX, mouseY, delta);
+		this.saveName.render(ctx, mouseX, mouseY, height);
+		this.date.render(ctx, mouseX, mouseY, height);
+		this.size.render(ctx, mouseX, mouseY, height);
+		this.seconds.render(ctx, mouseX, mouseY, height);
+		super.render(ctx, mouseX, mouseY, delta);
 	}
 }

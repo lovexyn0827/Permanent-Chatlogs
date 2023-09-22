@@ -10,10 +10,10 @@ import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.Session.Summary;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
@@ -59,10 +59,10 @@ public final class SessionListScreen extends Screen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		this.renderBackground(matrices);
-		this.displayedSessions.render(matrices, mouseX, mouseY, delta);
-		super.render(matrices, mouseX, mouseY, delta);
+	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+		this.renderBackground(ctx);
+		this.displayedSessions.render(ctx, mouseX, mouseY, delta);
+		super.render(ctx, mouseX, mouseY, delta);
 	}
 	
 	private final class SessionList extends AlwaysSelectedEntryListWidget<SessionList.SessionEntry> {
@@ -118,12 +118,12 @@ public final class SessionListScreen extends Screen {
 			}
 			
 			@Override
-			public void render(MatrixStack ms, int i, int y, int x, 
+			public void render(DrawContext ctx, int i, int y, int x, 
 					int width, int height, int var7, int var8, boolean var9, float var10) {
 				TextRenderer tr = SessionListScreen.this.client.textRenderer;
-				tr.draw(ms, this.saveName, x, y, 0xFFFFFFFF);
-				tr.draw(ms, this.start, x, y + 10, 0xFFFFFFFF);
-				tr.draw(ms, this.sizeAndTimeLength, x, y + 20, 0xFFFFFFFF);
+				ctx.drawText(tr, this.saveName, x, y, 0xFFFFFFFF, false);
+				ctx.drawText(tr, this.start, x, y + 10, 0xFFFFFFFF, false);
+				ctx.drawText(tr, this.sizeAndTimeLength, x, y + 20, 0xFFFFFFFF, false);
 			}
 			
 			@Override

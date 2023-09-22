@@ -7,6 +7,7 @@ import java.util.List;
 import lovexyn0827.chatlog.config.Option;
 import lovexyn0827.chatlog.config.Options;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
@@ -14,7 +15,6 @@ import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
@@ -40,10 +40,10 @@ public final class SettingScreen extends Screen {
 	}
 	
 	@Override
-	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
-		this.renderBackground(matrices);
-		super.render(matrices, mouseX, mouseY, delta);
-		this.optionList.render(matrices, mouseX, mouseY, delta);
+	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+		this.renderBackgroundTexture(ctx);
+		super.render(ctx, mouseX, mouseY, delta);
+		this.optionList.render(ctx, mouseX, mouseY, delta);
 	}
 	
 	@Override
@@ -100,11 +100,11 @@ public final class SettingScreen extends Screen {
 			}
 
 			@Override
-			public void render(MatrixStack ms, int i, int y, int x, 
+			public void render(DrawContext ctx, int i, int y, int x, 
 					int width, int height, int var7, int var8, boolean var9, float var10) {
-				SettingScreen.this.textRenderer.draw(ms, this.name, x, y + 5, 0xFF31F38B);
+				ctx.drawText(SettingScreen.this.textRenderer, this.name, x, y + 5, 0xFF31F38B, false);
 				this.textField.setY(y);
-				this.textField.render(ms, var7, var8, var10);
+				this.textField.render(ctx, var7, var8, var10);
 			}
 
 			@Override
@@ -114,6 +114,7 @@ public final class SettingScreen extends Screen {
 
 			@Override
 			public List<? extends Selectable> selectableChildren() {
+				// TODO Auto-generated method stub
 				return new ArrayList<>();
 			}
 		}
