@@ -60,7 +60,7 @@ public final class SessionListScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-		this.renderBackground(ctx);
+		this.renderBackground(ctx, mouseY, mouseY, delta);
 		this.displayedSessions.render(ctx, mouseX, mouseY, delta);
 		super.render(ctx, mouseX, mouseY, delta);
 	}
