@@ -1,6 +1,8 @@
 package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,10 +29,12 @@ public final class ChatLogScreen extends Screen {
 	private final Session session;
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
+	private ZoneId timeZone;
 	
 	protected ChatLogScreen(Session.Summary s) {
 		super(Text.literal(s.saveName));
 		this.session = Session.load(s);
+		this.timeZone = s.timeZone.toZoneId();
 	}
 
 	@Override
@@ -123,7 +127,10 @@ public final class ChatLogScreen extends Screen {
 				ctx.fill(x + 1, y, x + 3, y + 9, 0xFF31F38B);
 				if(hovering) {
 					if(mouseX - x < 4) {
-						String time = (this.time == 0L) ? "UNKNOWN TIME" : Instant.ofEpochMilli(this.time).toString();
+						String time = (this.time == 0L) ? "UNKNOWN TIME" : 
+							Instant.ofEpochMilli(this.time)
+									.atZone(ChatLogScreen.this.timeZone)
+									.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
 					} else {
 						double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
