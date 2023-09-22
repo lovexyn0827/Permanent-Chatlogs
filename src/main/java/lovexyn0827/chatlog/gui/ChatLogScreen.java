@@ -10,15 +10,16 @@ import lovexyn0827.chatlog.Session;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawableHelper;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.EntryListWidget;
+import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.ChatMessages;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.OrderedText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -29,7 +30,7 @@ public final class ChatLogScreen extends Screen {
 	private SearchFieldWidget searchField;
 	
 	protected ChatLogScreen(Session.Summary s) {
-		super(new LiteralText(s.saveName));
+		super(Text.literal(s.saveName));
 		this.session = Session.load(s);
 	}
 
@@ -55,7 +56,7 @@ public final class ChatLogScreen extends Screen {
 		this.client.setScreen(new SessionListScreen());
 	}
 	
-	private final class ChatLogWidget extends EntryListWidget<ChatLogWidget.Entry> {
+	private final class ChatLogWidget extends ElementListWidget<ChatLogWidget.Entry> {
 		private final List<Entry> allEntries;
 		
 		public ChatLogWidget(MinecraftClient client, Session session) {
@@ -99,7 +100,7 @@ public final class ChatLogScreen extends Screen {
 		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
-		private final class Entry extends EntryListWidget.Entry<Entry> {
+		private final class Entry extends ElementListWidget.Entry<Entry> {
 			private final OrderedText line;
 			private final String lineStr;
 			private final long time;
@@ -155,7 +156,7 @@ public final class ChatLogScreen extends Screen {
 			
 			private void renderToolTip(MatrixStack ms, TextRenderer tr, String value, int mouseX, int mouseY) {
 				ChatLogScreen.this.renderOrderedTooltip(ms, 
-						ChatMessages.breakRenderedChatMessageLines(new LiteralText(value), width / 2, tr), 
+						ChatMessages.breakRenderedChatMessageLines(Text.literal(value), width / 2, tr), 
 						mouseX, mouseY);
 			}
 
@@ -163,6 +164,16 @@ public final class ChatLogScreen extends Screen {
 				ChatLogScreen.this.renderOrderedTooltip(ms, 
 						ChatMessages.breakRenderedChatMessageLines(text, width / 2, tr), 
 						mouseX, mouseY);
+			}
+
+			@Override
+			public List<? extends Element> children() {
+				return new ArrayList<>();
+			}
+
+			@Override
+			public List<? extends Selectable> selectableChildren() {
+				return new ArrayList<>();
 			}
 		}
 	}
@@ -172,7 +183,7 @@ public final class ChatLogScreen extends Screen {
 			super(textRenderer,  
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.2F), 2, 
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.6F), 14, 
-					new LiteralText("Search")
+					Text.literal("Search")
 			);
 			this.setChangedListener(ChatLogScreen.this.chatlogs::filter);
 		}

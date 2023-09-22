@@ -46,9 +46,8 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lovexyn0827.chatlog.config.Options;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.font.TextVisitFactory;
-import net.minecraft.network.MessageType;
 import net.minecraft.text.Text;
+import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
 
 public final class Session {
@@ -286,9 +285,9 @@ public final class Session {
 		}
 	}
 
-	public void onMessage(MessageType type, UUID sender, Text msg) {
+	public void onMessage(UUID sender, Text msg) {
 		// TODO Limit memory usage
-		this.chatLogs.addLast(new Line(type, sender, msg, Util.getEpochTimeMs()));
+		this.chatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
 		this.visibleLineCache = null;
 		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
 			// Naive solution?
@@ -534,13 +533,11 @@ public final class Session {
 	}
 	
 	public static final class Line {
-		public final MessageType type;
 		public final UUID sender;
 		public final Text message;
 		public final long time;
 		
-		protected Line(MessageType type, UUID sender, Text message, long time) {
-			this.type = type;
+		protected Line(UUID sender, Text message, long time) {
 			this.sender = sender;
 			this.message = message;
 			this.time = time;
@@ -549,7 +546,6 @@ public final class Session {
 		@SuppressWarnings("deprecation")
 		public void serialize(JsonWriter jw, Object2IntMap<UUID> uuids) throws IOException {
 			jw.beginObject();
-			jw.name("type").value(this.type.getId());
 			jw.name("sender").value(uuids.computeIntIfAbsent(this.sender, (k) -> uuids.size()));
 			jw.name("msgJson").value(Text.Serializer.toJson(this.message));
 			jw.name("time").value(this.time);
@@ -559,14 +555,10 @@ public final class Session {
 		public static Proto parse(JsonReader jr) throws IOException {
 			jr.beginObject();
 			String msgJson = null;
-			Integer type = null;
 			Integer sender = null;
 			long time = 0;
 			while(jr.hasNext()) {
 				switch (jr.nextName()) {
-				case "type":
-					type = jr.nextInt();
-					break;
 				case "sender":
 					sender = jr.nextInt();
 					break;
@@ -582,26 +574,24 @@ public final class Session {
 				}
 			}
 			
-			if(msgJson == null || type == null || sender == null) {
-				throw new MalformedJsonException("Incomplete chat los line");
+			if(msgJson == null || sender == null) {
+				throw new MalformedJsonException("Incomplete chat line");
 			}
 			
 			jr.endObject();
-			return new Proto(MessageType.byId(type.byteValue()), sender, Text.Serializer.fromJson(msgJson), time);
+			return new Proto(sender, Text.Serializer.fromJson(msgJson), time);
 		}
 		
 		public static Line parseFull(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
-			return new Line(MessageType.byId(jo.get("type").getAsByte()), 
-					UUID.fromString(jo.get("sender").getAsString()), 
+			return new Line(UUID.fromString(jo.get("sender").getAsString()), 
 					Text.Serializer.fromJson(jo.get("msgJson").getAsString()), 
 					jo.get("time").getAsLong());
 		}
 
 		public JsonObject serializeWithoutIndex() {
 			JsonObject line = new JsonObject();
-			line.addProperty("type", this.type.getId());
 			line.addProperty("sender", this.sender.toString());
 			line.addProperty("msgJson", Text.Serializer.toJson(this.message));
 			line.addProperty("time", this.time);
@@ -609,20 +599,18 @@ public final class Session {
 		}
 		
 		protected final static class Proto {
-			public final MessageType type;
 			public final int senderId;
 			public final Text message;
 			public final long time;
 			
-			protected Proto(MessageType type, int senderId, Text message, long time) {
-				this.type = type;
+			protected Proto(int senderId, Text message, long time) {
 				this.senderId = senderId;
 				this.message = message;
 				this.time = time;
 			}
 			
 			protected Line toLine(Int2ObjectMap<UUID> uuids) {
-				return new Line(this.type, uuids.get(this.senderId), this.message, this.time);
+				return new Line(uuids.get(this.senderId), this.message, this.time);
 			}
 		}
 	}

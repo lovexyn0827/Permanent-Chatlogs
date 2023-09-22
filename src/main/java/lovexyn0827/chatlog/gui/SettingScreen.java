@@ -1,22 +1,27 @@
 package lovexyn0827.chatlog.gui;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 import lovexyn0827.chatlog.config.Option;
 import lovexyn0827.chatlog.config.Options;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.Element;
+import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
 	private OptionListWidget optionList;
 	
 	protected SettingScreen() {
-		super(new LiteralText("Settings"));
+		super(Text.literal("Settings"));
 	}
 
 	@Override
@@ -67,20 +72,20 @@ public final class SettingScreen extends Screen {
 		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
-		private final class Entry extends EntryListWidget.Entry<Entry> {
-			private final LiteralText name;
+		private final class Entry extends ElementListWidget.Entry<Entry> {
+			private final Text name;
 			protected final TextFieldWidget textField;
 			
 			protected Entry(Field f) {
-				this.name = new LiteralText(f.getName());
+				this.name = Text.literal(f.getName());
 				int width = SettingScreen.this.client.getWindow().getScaledWidth();
 				this.textField = new TextFieldWidget(SettingScreen.this.textRenderer, 
 						(int) (width * 0.35), 1, 
 						(int) (width * 0.5), 14, this.name) {
 					@Override
-					protected void setFocused(boolean focused) {
+					public void setFocused(boolean focused) {
 						super.setFocused(focused);
-						Options.set(Entry.this.name.asString(), this.getText());
+						Options.set(Entry.this.name.getString(), this.getText());
 					}
 				};
 				try {
@@ -90,7 +95,7 @@ public final class SettingScreen extends Screen {
 				}
 				
 				this.textField.setChangedListener((s) -> {
-					Options.set(Entry.this.name.asString(), s);
+					Options.set(Entry.this.name.getString(), s);
 				});
 			}
 
@@ -98,8 +103,18 @@ public final class SettingScreen extends Screen {
 			public void render(MatrixStack ms, int i, int y, int x, 
 					int width, int height, int var7, int var8, boolean var9, float var10) {
 				SettingScreen.this.textRenderer.draw(ms, this.name, x, y + 5, 0xFF31F38B);
-				this.textField.y = y;
+				this.textField.setY(y);
 				this.textField.render(ms, var7, var8, var10);
+			}
+
+			@Override
+			public List<? extends Element> children() {
+				return new ArrayList<>();
+			}
+
+			@Override
+			public List<? extends Selectable> selectableChildren() {
+				return new ArrayList<>();
 			}
 		}
 	}

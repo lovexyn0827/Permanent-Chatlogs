@@ -11,12 +11,12 @@ import lovexyn0827.chatlog.Session;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.world.level.storage.LevelSummary;
 
-@Mixin(WorldListWidget.Entry.class)
-public abstract class WorldListWidgetEntryMixin {
+@Mixin(WorldListWidget.WorldEntry.class)
+public abstract class WorldListWidgetWorldEntryMixin {
 	@Shadow
 	private @Final LevelSummary level;
 	
-	@Inject(method = "play", at = @At(value = "INVOKE", target = "net/minecraft/client/gui/screen/world/WorldListWidget$Entry."
+	@Inject(method = "play", at = @At(value = "INVOKE", target = "net/minecraft/client/gui/screen/world/WorldListWidget$WorldEntry."
 			+ "start()V"), cancellable = true)
 	private void onOpenWorld(CallbackInfo ci) {
 		Session.current = new Session(this.level.getDisplayName());

@@ -1,15 +1,16 @@
 {
 	"required": true,
 	"package": "lovexyn0827.chatlog.mixin",
-	"compatibilityLevel": "JAVA_8",
+	"compatibilityLevel": "JAVA_17",
 	"mixins": [
 		"TitleScreenMixin", 
 		"ChatHudMixin", 
 		"MinecraftClientMixin", 
 		"MultiplayerScreenMixin", 
-		"WorldListWidgetEntryMixin", 
+		"WorldListWidgetWorldEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
-		"ChatScreenMixin"
+		"ChatScreenMixin", 
+		"CreateWorldScreenMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

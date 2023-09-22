@@ -11,12 +11,12 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import lovexyn0827.chatlog.Session;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ScreenTexts;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.predicate.NumberRange.IntRange;
-import net.minecraft.text.LiteralText;
+import net.minecraft.screen.ScreenTexts;
+import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
 public final class FilterSessionScreen extends Screen {
@@ -27,7 +27,7 @@ public final class FilterSessionScreen extends Screen {
 	private TextFieldWidget seconds;
 	
 	protected FilterSessionScreen() {
-		super(new LiteralText("Filter Sessions"));
+		super(Text.literal("Filter Sessions"));
 	}
 
 	@Override
@@ -78,25 +78,27 @@ public final class FilterSessionScreen extends Screen {
 		this.saveName = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F), 
 				(int) (width * 0.4F), 14, 
-				new LiteralText("Name"));
+				Text.literal("Name"));
 		this.date = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 18, 
 				(int) (width * 0.4F), 14, 
-				new LiteralText("Date"));
+				Text.literal("Date"));
 		this.size = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 36, 
 				(int) (width * 0.4F), 14, 
-				new LiteralText("Messages"));
+				Text.literal("Messages"));
 		this.seconds = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 54, 
 				(int) (width * 0.4F), 14, 
-				new LiteralText("Seconds"));
+				Text.literal("Seconds"));
 		this.addDrawableChild(this.saveName);
 		this.addDrawableChild(this.date);
 		this.addDrawableChild(this.size);
 		this.addDrawableChild(this.seconds);
-		this.addDrawableChild(new ButtonWidget(width / 2 - 40, (int) (height * 0.25F) + 72, 
-				80, 20, ScreenTexts.DONE, (btn) -> this.close()));
+		
+		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, (btn) -> this.close())
+				.dimensions(width / 2 - 40, (int) (height * 0.25F) + 72, 80, 20)
+				.build());
 	}
 	
 	@Override
@@ -106,13 +108,13 @@ public final class FilterSessionScreen extends Screen {
 		this.client.getTextureManager().bindTexture(new Identifier("textures/gui/demo_background.png"));
 		fill(matrices, (int) (width * 0.2F), (int) (height * 0.2F), 
 				(int) (width * 0.8F), (int) (height * 0.2F) + 108, 0xFF0F0F0F);
-		drawCenteredText(matrices, this.textRenderer, "Name", 
+		drawCenteredTextWithShadow(matrices, this.textRenderer, "Name", 
 				(int) (width * 0.27F), (int) (height * 0.25F), 0xFFFFFFFF);
-		drawCenteredText(matrices, this.textRenderer, "Date", 
+		drawCenteredTextWithShadow(matrices, this.textRenderer, "Date", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 18, 0xFFFFFFFF);
-		drawCenteredText(matrices, this.textRenderer, "Messages", 
+		drawCenteredTextWithShadow(matrices, this.textRenderer, "Messages", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 36, 0xFFFFFFFF);
-		drawCenteredText(matrices, this.textRenderer, "Seconds", 
+		drawCenteredTextWithShadow(matrices, this.textRenderer, "Seconds", 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 54, 0xFFFFFFFF);
 		this.saveName.render(matrices, mouseX, mouseY, height);
 		this.date.render(matrices, mouseX, mouseY, height);

@@ -1,10 +1,12 @@
 package lovexyn0827.chatlog.mixin;
 
 import net.minecraft.client.gui.hud.ChatHud;
-import net.minecraft.network.MessageType;
+import net.minecraft.client.gui.hud.MessageIndicator;
+import net.minecraft.network.message.MessageSignatureData;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
 
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -17,15 +19,17 @@ import lovexyn0827.chatlog.config.Options;
 
 @Mixin(ChatHud.class)
 public class ChatHudMixin {
-	@Inject(method = "addMessage(Lnet/minecraft/text/Text;)V", at = @At("HEAD"))
-	private void onMessage(Text message, CallbackInfo info) {
+	@Inject(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;"
+			+ "ILnet/minecraft/client/gui/hud/MessageIndicator;Z)V", at = @At("HEAD"))
+	private void onMessage(Text message, @Nullable MessageSignatureData signature, int ticks, @Nullable MessageIndicator indicator, boolean refresh, CallbackInfo info) {
 		if(Session.current != null) {
-			Session.current.onMessage(MessageType.CHAT, Util.NIL_UUID, message);
+			Session.current.onMessage(Util.NIL_UUID, message);
 		}
 	}
 	
 	@ModifyConstant(
-			method = "addMessage(Lnet/minecraft/text/Text;IIZ)V", 
+			method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;"
+					+ "ILnet/minecraft/client/gui/hud/MessageIndicator;Z)V", 
 			constant = @Constant(intValue = 100)
 	)
 	private int overrideMaxMessages(int initial) {

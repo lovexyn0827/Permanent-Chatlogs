@@ -14,23 +14,22 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 public final class SessionListScreen extends Screen {
-	private static final LiteralText PREVIOUS = new LiteralText("Previous");
-	private static final LiteralText NEXT = new LiteralText("Next");
+	private static final Text PREVIOUS = Text.literal("Previous");
+	private static final Text NEXT = Text.literal("Next");
 	private SessionList displayedSessions;
 	private final Predicate<Session.Summary> filterer;
 	
 	public SessionListScreen() {
-		super(new LiteralText("Chat Logs"));
+		super(Text.literal("Chat Logs"));
 		this.filterer = (s) -> true;
 	}
 	
 	public SessionListScreen(Predicate<Session.Summary> filterer) {
-		super(new LiteralText("Chat Logs"));
+		super(Text.literal("Chat Logs"));
 		this.filterer = filterer;
 	}
 	
@@ -38,14 +37,21 @@ public final class SessionListScreen extends Screen {
 	protected void init() {
 		this.displayedSessions = new SessionList(this.client);
 		this.addDrawableChild(this.displayedSessions);
-		ButtonWidget prevBtn = new ButtonWidget(this.width / 2 - 128, this.height - 23, 120, 20, 
-				PREVIOUS, (btn) -> this.displayedSessions.turnPage(false));
-		ButtonWidget nextBtn = new ButtonWidget(this.width / 2 + 8, this.height - 23, 120, 20, 
-				NEXT, (btn) -> this.displayedSessions.turnPage(true));
-		ButtonWidget filterBtn = new ButtonWidget(2, 2, 60, 20, 
-				new LiteralText("Filter"), (btn) -> this.client.setScreen(new FilterSessionScreen()));
-		ButtonWidget settingBtn = new ButtonWidget(65, 2, 60, 20, 
-				new LiteralText("Sessings"), (btn) -> this.client.setScreen(new SettingScreen()));
+		
+		ButtonWidget prevBtn = ButtonWidget.builder(PREVIOUS, (btn) -> this.displayedSessions.turnPage(false))
+				.dimensions(this.width / 2 - 128, this.height - 23, 120, 20)
+				.build();
+		ButtonWidget nextBtn = ButtonWidget.builder(NEXT, (btn) -> this.displayedSessions.turnPage(true))
+				.dimensions(this.width / 2 + 8, this.height - 23, 120, 20)
+				.build();
+		ButtonWidget filterBtn = ButtonWidget.builder(Text.literal("Filter"), 
+						(btn) -> this.client.setScreen(new FilterSessionScreen()))
+				.dimensions(2, 2, 60, 20)
+				.build();
+		ButtonWidget settingBtn = ButtonWidget.builder(Text.literal("Sessings"), 
+						(btn) -> this.client.setScreen(new SettingScreen()))
+				.dimensions(65, 2, 60, 20)
+				.build();
 		this.addDrawableChild(prevBtn);
 		this.addDrawableChild(nextBtn);
 		this.addDrawableChild(filterBtn);
@@ -92,17 +98,17 @@ public final class SessionListScreen extends Screen {
 		
 		private final class SessionEntry extends AlwaysSelectedEntryListWidget.Entry<SessionEntry> {
 			private final Session.Summary summary;
-			private final LiteralText saveName;
-			private final LiteralText start;
-			private final LiteralText sizeAndTimeLength;
+			private final Text saveName;
+			private final Text start;
+			private final Text sizeAndTimeLength;
 			
 			public SessionEntry(Session.Summary info) {
 				this.summary = info;
-				this.saveName = new LiteralText(info.saveName);
-				this.start = new LiteralText(Instant.ofEpochMilli(info.startTime)
+				this.saveName = Text.literal(info.saveName);
+				this.start = Text.literal(Instant.ofEpochMilli(info.startTime)
 						.atZone(this.summary.timeZone.toZoneId()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 				long delta = (long) Math.floor((info.endTime - info.startTime) / 1000);
-				this.sizeAndTimeLength = new LiteralText(String.format("%d:%d:%d (%d Messages)", 
+				this.sizeAndTimeLength = Text.literal(String.format("%d:%d:%d (%d Messages)", 
 						(int) Math.floor(delta / 3600), (int) Math.floor((delta % 3600) / 60), delta % 60, info.size));
 			}
 
