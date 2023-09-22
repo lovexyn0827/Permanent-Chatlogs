@@ -6,6 +6,7 @@ import lovexyn0827.chatlog.config.Option;
 import lovexyn0827.chatlog.config.Options;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.math.MatrixStack;
@@ -30,7 +31,7 @@ public final class SettingScreen extends Screen {
 			this.optionList.addOption(f);
 		}
 		
-		this.addChild(this.optionList);
+		this.addDrawableChild(this.optionList);
 	}
 	
 	@Override
@@ -41,8 +42,8 @@ public final class SettingScreen extends Screen {
 	}
 	
 	@Override
-	public void onClose() {
-		this.client.openScreen(new SessionListScreen());
+	public void close() {
+		this.client.setScreen(new SessionListScreen());
 	}
 	
 	private final class OptionListWidget extends EntryListWidget<OptionListWidget.Entry> {
@@ -58,8 +59,12 @@ public final class SettingScreen extends Screen {
 		
 		protected int addOption(Field f) {
 			Entry e = new Entry(f);
-			SettingScreen.this.addChild(e.textField);
+			SettingScreen.this.addDrawableChild(e.textField);
 			return this.addEntry(e);
+		}
+
+		@Override
+		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
 		private final class Entry extends EntryListWidget.Entry<Entry> {

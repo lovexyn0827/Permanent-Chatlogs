@@ -11,6 +11,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawableHelper;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.ChatMessages;
@@ -37,8 +38,8 @@ public final class ChatLogScreen extends Screen {
 		this.width = (int) (this.client.getWindow().getWidth() * 0.8F);
 		this.chatlogs = new ChatLogWidget(this.client, this.session);
 		this.searchField = new SearchFieldWidget(this.textRenderer);
-		this.addChild(this.searchField);
-		this.addChild(this.chatlogs);
+		this.addDrawableChild(this.searchField);
+		this.addDrawableChild(this.chatlogs);
 	}
 	
 	@Override
@@ -50,8 +51,8 @@ public final class ChatLogScreen extends Screen {
 	}
 	
 	@Override
-	public void onClose() {
-		this.client.openScreen(new SessionListScreen());
+	public void close() {
+		this.client.setScreen(new SessionListScreen());
 	}
 	
 	private final class ChatLogWidget extends EntryListWidget<ChatLogWidget.Entry> {
@@ -92,6 +93,10 @@ public final class ChatLogScreen extends Screen {
 					.filter((e) -> e.lineStr.contains(in))
 					.collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 			this.setScrollAmount(0);
+		}
+		
+		@Override
+		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
 		private final class Entry extends EntryListWidget.Entry<Entry> {

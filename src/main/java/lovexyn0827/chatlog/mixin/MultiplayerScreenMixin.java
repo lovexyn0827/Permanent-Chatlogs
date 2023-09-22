@@ -19,7 +19,7 @@ public class MultiplayerScreenMixin {
 	
 	@Inject(method = "connect", at = @At("HEAD"))
 	private void onConnect(CallbackInfo ci) {
-		MultiplayerServerListWidget.Entry entry =  this.serverListWidget.getSelected();
+		MultiplayerServerListWidget.Entry entry =  this.serverListWidget.getSelectedOrNull();
 		if(entry instanceof MultiplayerServerListWidget.ServerEntry) {
 			ServerInfo info = ((MultiplayerServerListWidget.ServerEntry) entry).getServer();
 			Session.current = new Session(info.name);

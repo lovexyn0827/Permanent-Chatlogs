@@ -292,7 +292,7 @@ public final class Session {
 		this.visibleLineCache = null;
 		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
 			// Naive solution?
-			String string = TextVisitFactory.method_31402(msg);
+			String string = TextVisitFactory.removeFormattingCodes(msg);
 			String name = StringUtils.substringBetween(string, "<", ">");
 			return name == null ? "[UNSPECIFIED]" : name;
 		});
@@ -546,6 +546,7 @@ public final class Session {
 			this.time = time;
 		}
 
+		@SuppressWarnings("deprecation")
 		public void serialize(JsonWriter jw, Object2IntMap<UUID> uuids) throws IOException {
 			jw.beginObject();
 			jw.name("type").value(this.type.getId());
@@ -590,6 +591,7 @@ public final class Session {
 		}
 		
 		public static Line parseFull(String json) {
+			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
 			return new Line(MessageType.byId(jo.get("type").getAsByte()), 
 					UUID.fromString(jo.get("sender").getAsString()), 

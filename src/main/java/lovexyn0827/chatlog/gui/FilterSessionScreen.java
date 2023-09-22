@@ -31,7 +31,7 @@ public final class FilterSessionScreen extends Screen {
 	}
 
 	@Override
-	public void onClose() {
+	public void close() {
 		this.filterer = (s) -> {
 			return s.saveName.contains(this.saveName.getText());
 		};
@@ -68,7 +68,7 @@ public final class FilterSessionScreen extends Screen {
 		} catch (CommandSyntaxException e) {
 		}
 		
-		this.client.openScreen(new SessionListScreen(this.filterer));
+		this.client.setScreen(new SessionListScreen(this.filterer));
 	}
 	
 	@Override
@@ -91,12 +91,12 @@ public final class FilterSessionScreen extends Screen {
 				(int) (width * 0.35F), (int) (height * 0.25F) + 54, 
 				(int) (width * 0.4F), 14, 
 				new LiteralText("Seconds"));
-		this.addChild(this.saveName);
-		this.addChild(this.date);
-		this.addChild(this.size);
-		this.addChild(this.seconds);
-		this.addButton(new ButtonWidget(width / 2 - 40, (int) (height * 0.25F) + 72, 
-				80, 20, ScreenTexts.DONE, (btn) -> this.onClose()));
+		this.addDrawableChild(this.saveName);
+		this.addDrawableChild(this.date);
+		this.addDrawableChild(this.size);
+		this.addDrawableChild(this.seconds);
+		this.addDrawableChild(new ButtonWidget(width / 2 - 40, (int) (height * 0.25F) + 72, 
+				80, 20, ScreenTexts.DONE, (btn) -> this.close()));
 	}
 	
 	@Override

@@ -15,6 +15,7 @@ import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
 public final class SessionListScreen extends Screen {
@@ -36,19 +37,19 @@ public final class SessionListScreen extends Screen {
 	@Override
 	protected void init() {
 		this.displayedSessions = new SessionList(this.client);
-		this.addChild(this.displayedSessions);
+		this.addDrawableChild(this.displayedSessions);
 		ButtonWidget prevBtn = new ButtonWidget(this.width / 2 - 128, this.height - 23, 120, 20, 
 				PREVIOUS, (btn) -> this.displayedSessions.turnPage(false));
 		ButtonWidget nextBtn = new ButtonWidget(this.width / 2 + 8, this.height - 23, 120, 20, 
 				NEXT, (btn) -> this.displayedSessions.turnPage(true));
 		ButtonWidget filterBtn = new ButtonWidget(2, 2, 60, 20, 
-				new LiteralText("Filter"), (btn) -> this.client.openScreen(new FilterSessionScreen()));
+				new LiteralText("Filter"), (btn) -> this.client.setScreen(new FilterSessionScreen()));
 		ButtonWidget settingBtn = new ButtonWidget(65, 2, 60, 20, 
-				new LiteralText("Sessings"), (btn) -> this.client.openScreen(new SettingScreen()));
-		this.addButton(prevBtn);
-		this.addButton(nextBtn);
-		this.addButton(filterBtn);
-		this.addButton(settingBtn);
+				new LiteralText("Sessings"), (btn) -> this.client.setScreen(new SettingScreen()));
+		this.addDrawableChild(prevBtn);
+		this.addDrawableChild(nextBtn);
+		this.addDrawableChild(filterBtn);
+		this.addDrawableChild(settingBtn);
 	}
 	
 	@Override
@@ -104,6 +105,11 @@ public final class SessionListScreen extends Screen {
 				this.sizeAndTimeLength = new LiteralText(String.format("%d:%d:%d (%d Messages)", 
 						(int) Math.floor(delta / 3600), (int) Math.floor((delta % 3600) / 60), delta % 60, info.size));
 			}
+
+			@Override
+			public Text getNarration() {
+				return this.saveName;
+			}
 			
 			@Override
 			public void render(MatrixStack ms, int i, int y, int x, 
@@ -117,7 +123,7 @@ public final class SessionListScreen extends Screen {
 			@Override
 			public boolean mouseClicked(double mouseX, double mouseY, int button) {
 				try {
-					SessionListScreen.this.client.openScreen(new ChatLogScreen(this.summary));
+					SessionListScreen.this.client.setScreen(new ChatLogScreen(this.summary));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}

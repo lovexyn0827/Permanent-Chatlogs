@@ -21,8 +21,8 @@ public class TitleScreenMixin extends Screen {
 
 	@Inject(method = "init", at = @At("RETURN"))
 	private void onInit(CallbackInfo ci) {
-		this.addButton(new ButtonWidget(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20, 
-				new LiteralText("Chat Logs"), (btn) -> this.client.openScreen(new SessionListScreen())));
+		this.addDrawableChild(new ButtonWidget(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20, 
+				new LiteralText("Chat Logs"), (btn) -> this.client.setScreen(new SessionListScreen())));
 		Session.tryRestoreUnsaved();
 	}
 }

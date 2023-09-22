@@ -22,7 +22,7 @@ public abstract class MinecraftClientMixin {
 			method = "createWorld", 
 			at = @At(value = "HEAD")
 	)
-	private void onCreateWorld(String worldName, LevelInfo levelInfo, DynamicRegistryManager.Impl registryTracker, 
+	private void onCreateWorld(String worldName, LevelInfo levelInfo, DynamicRegistryManager registryTracker, 
 			GeneratorOptions generatorOptions, CallbackInfo ci) {
 		Session.current = new Session(worldName);
 	}
