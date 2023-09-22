@@ -18,7 +18,7 @@ import net.minecraft.text.LiteralText;
 import net.minecraft.util.math.MathHelper;
 
 public final class SessionListScreen extends Screen {
-	private static final LiteralText PREVIOUS = new LiteralText("Prevoius");
+	private static final LiteralText PREVIOUS = new LiteralText("Previous");
 	private static final LiteralText NEXT = new LiteralText("Next");
 	private SessionList displayedSessions;
 	private final Predicate<Session.Summary> filterer;

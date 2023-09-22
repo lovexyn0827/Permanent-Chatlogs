@@ -28,7 +28,7 @@ public abstract class MinecraftClientMixin {
 	}
 	
 	@Inject(
-			method = "disconnect()V", 
+			method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", 
 			at = @At(value = "HEAD"))
 	private void onDisconnected(CallbackInfo ci) {
 		if(Session.current != null && Session.current.shouldSaveOnDisconnection) {
