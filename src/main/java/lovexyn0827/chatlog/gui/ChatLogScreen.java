@@ -1,6 +1,8 @@
 package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,12 +26,14 @@ import net.minecraft.text.Text;
 
 public final class ChatLogScreen extends Screen {
 	private final Session session;
+	private final ZoneId timeZone;
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
 	
 	protected ChatLogScreen(Session.Summary s) {
 		super(new LiteralText(s.saveName));
 		this.session = Session.load(s);
+		this.timeZone = s.timeZone.toZoneId();
 	}
 
 	@Override
@@ -118,7 +122,10 @@ public final class ChatLogScreen extends Screen {
 				DrawableHelper.fill(ms, x + 1, y, x + 3, y + 9, 0xFF31F38B);
 				if(hovering) {
 					if(mouseX - x < 4) {
-						String time = (this.time == 0L) ? "UNKNOWN TIME" : Instant.ofEpochMilli(this.time).toString();
+						String time = (this.time == 0L) ? "UNKNOWN TIME" : 
+							Instant.ofEpochMilli(this.time)
+									.atZone(ChatLogScreen.this.timeZone)
+									.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 						this.renderToolTip(ms, tr, time, mouseX, mouseY);
 					} else {
 						double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
