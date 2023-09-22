@@ -48,7 +48,7 @@ public final class ChatLogScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		this.renderBackground(context);
+		this.renderBackground(context, mouseY, mouseY, delta);
 		this.chatlogs.render(context, mouseX, mouseY, delta);
 		this.searchField.render(context, mouseX, mouseY, delta);
 		super.render(context, mouseX, mouseY, delta);
@@ -85,10 +85,10 @@ public final class ChatLogScreen extends Screen {
 		}
 		
 		@Override
-		public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-			amount *= (double)this.itemHeight / 2.0 * (Screen.hasControlDown() ? 
+		public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+			verticalAmount *= (double)this.itemHeight / 2.0 * (Screen.hasControlDown() ? 
 					(Screen.hasAltDown() ? 160 : 32) : 4.0);
-			this.setScrollAmount(this.getScrollAmount() - amount);
+			this.setScrollAmount(this.getScrollAmount() - verticalAmount);
 			return true;
 		}
 		
