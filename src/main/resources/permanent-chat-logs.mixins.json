@@ -9,7 +9,8 @@
 		"MultiplayerScreenMixin", 
 		"WorldListWidgetEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
-		"ChatScreenMixin"
+		"ChatScreenMixin", 
+		"LanguageManagerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

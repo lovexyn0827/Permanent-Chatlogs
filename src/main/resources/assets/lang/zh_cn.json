@@ -1,0 +1,18 @@
+{
+	"readableName" : "中文（中国）", 
+	"translations" : {
+		"gui.prev" : "上一页", 
+		"gui.next" : "下一页", 
+		"gui.chatlogs" : "聊天记录", 
+		"gui.filter" : "筛选", 
+		"gui.filter.sessions" : "筛选会话", 
+		"gui.filter.savename" : "存档名称", 
+		"gui.filter.date" : "日期", 
+		"gui.filter.messages" : "消息数目", 
+		"gui.filter.seconds" : "会话秒数", 
+		"gui.unknowntime" : "未知时间", 
+		"gui.search" : "搜索", 
+		"gui.settings" : "设置", 
+		"gui.sizeandtime" : "%d:%d:%d（%d条消息）"
+	}
+}
