@@ -6,9 +6,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 import com.google.common.collect.ImmutableList;
 
 import lovexyn0827.chatlog.Session;
+import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -27,9 +30,9 @@ import net.minecraft.text.Text;
 
 public final class ChatLogScreen extends Screen {
 	private final Session session;
+	private final ZoneId timeZone;
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
-	private ZoneId timeZone;
 	
 	protected ChatLogScreen(Session.Summary s) {
 		super(Text.literal(s.saveName));
@@ -49,9 +52,9 @@ public final class ChatLogScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		this.renderBackground(context);
+		super.render(context, mouseX, mouseY, delta);
 		this.chatlogs.render(context, mouseX, mouseY, delta);
 		this.searchField.render(context, mouseX, mouseY, delta);
-		super.render(context, mouseX, mouseY, delta);
 	}
 	
 	@Override
@@ -127,36 +130,16 @@ public final class ChatLogScreen extends Screen {
 				ctx.fill(x + 1, y, x + 3, y + 9, 0xFF31F38B);
 				if(hovering) {
 					if(mouseX - x < 4) {
-						String time = (this.time == 0L) ? "UNKNOWN TIME" : 
+						String time = (this.time == 0L) ? I18N.translate("gui.unknowntime") : 
 							Instant.ofEpochMilli(this.time)
 									.atZone(ChatLogScreen.this.timeZone)
 									.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
 					} else {
-						double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
-						int pos = (int) Math.floor(mouseX - 4 * scale);
-						Style style = tr.getTextHandler().getStyleAt(line, pos);
-						if(style != null) {
-							HoverEvent he;
-							boolean hasHoverText = false;
-							if((he = style.getHoverEvent()) != null) {
-								if(he.getAction() == HoverEvent.Action.SHOW_TEXT) {
-									hasHoverText = true;
-									Text text = he.getValue(HoverEvent.Action.SHOW_TEXT);
-									this.renderToolTip(ctx, tr, text, mouseX, mouseY);
-									//ctx.drawHoverEvent(tr, style, mouseX, mouseY);
-								}
-							}
-							
-							ClickEvent ce;
-							if((ce = style.getClickEvent()) != null) {
-								ChatLogScreen.this.handleTextClick(style);
-								if(!hasHoverText) {
-									this.renderToolTip(ctx, tr, ce.getValue(), mouseX, mouseY);
-								}
-							}
+						Text tip = this.getToolTip(mouseX, mouseY);
+						if(tip != null) {
+							this.renderToolTip(ctx, tr, tip, mouseX, mouseY);
 						}
-						
 					}
 				}
 			}
@@ -182,6 +165,46 @@ public final class ChatLogScreen extends Screen {
 			public List<? extends Selectable> selectableChildren() {
 				return new ArrayList<>();
 			}
+			
+			@Nullable
+			private Text getToolTip(double mouseX, double mouseY) {
+				TextRenderer tr = ChatLogScreen.this.textRenderer;
+				double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
+				int pos = (int) Math.floor(mouseX - 4 * scale);
+				Style style = tr.getTextHandler().getStyleAt(line, pos);
+				if(style != null) {
+					HoverEvent he;
+					boolean hasHoverText = false;
+					if((he = style.getHoverEvent()) != null && !Screen.hasAltDown()) {
+						if(he.getAction() == HoverEvent.Action.SHOW_TEXT) {
+							hasHoverText = true;
+							return he.getValue(HoverEvent.Action.SHOW_TEXT);
+						}
+					}
+					
+					ClickEvent ce;
+					if((ce = style.getClickEvent()) != null) {
+						if(!hasHoverText) {
+							return Text.literal(ce.getValue());
+						}
+					}
+				}
+				
+				return null;
+			}
+			
+			@Override
+			public boolean mouseClicked(double mouseX, double mouseY, int button) {
+				if(Screen.hasControlDown()) {
+					Text tip = this.getToolTip(mouseX, mouseY);
+					if(tip != null) {
+						ChatLogScreen.this.client.keyboard.setClipboard(tip.getString());
+						return true;
+					}
+				}
+				
+				return false;
+			}
 		}
 	}
 	
@@ -190,7 +213,7 @@ public final class ChatLogScreen extends Screen {
 			super(textRenderer,  
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.2F), 2, 
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.6F), 14, 
-					Text.literal("Search")
+					I18N.translateAsText("gui.search")
 			);
 			this.setChangedListener(ChatLogScreen.this.chatlogs::filter);
 		}
