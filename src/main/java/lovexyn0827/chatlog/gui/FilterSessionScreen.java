@@ -10,6 +10,7 @@ import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import lovexyn0827.chatlog.Session;
+import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -17,7 +18,6 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.predicate.NumberRange.IntRange;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 
 public final class FilterSessionScreen extends Screen {
 	private Predicate<Session.Summary> filterer;
@@ -78,24 +78,23 @@ public final class FilterSessionScreen extends Screen {
 		this.saveName = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F), 
 				(int) (width * 0.4F), 14, 
-				Text.literal("Name"));
+				I18N.translateAsText("gui.filter.savename"));
 		this.date = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 18, 
 				(int) (width * 0.4F), 14, 
-				Text.literal("Date"));
+				I18N.translateAsText("gui.filter.date"));
 		this.size = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 36, 
 				(int) (width * 0.4F), 14, 
-				Text.literal("Messages"));
+				I18N.translateAsText("gui.filter.messages"));
 		this.seconds = new TextFieldWidget(this.textRenderer, 
 				(int) (width * 0.35F), (int) (height * 0.25F) + 54, 
 				(int) (width * 0.4F), 14, 
-				Text.literal("Seconds"));
+				I18N.translateAsText("gui.filter.seconds"));
 		this.addDrawableChild(this.saveName);
 		this.addDrawableChild(this.date);
 		this.addDrawableChild(this.size);
 		this.addDrawableChild(this.seconds);
-		
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, (btn) -> this.close())
 				.dimensions(width / 2 - 40, (int) (height * 0.25F) + 72, 80, 20)
 				.build());
@@ -103,18 +102,16 @@ public final class FilterSessionScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+		this.renderBackground(ctx, mouseY, mouseY, delta);
 		int width = this.client.getWindow().getScaledWidth();
 		int height = this.client.getWindow().getScaledHeight();
-		this.client.getTextureManager().bindTexture(new Identifier("textures/gui/demo_background.png"));
-		ctx.fill((int) (width * 0.2F), (int) (height * 0.2F), 
-				(int) (width * 0.8F), (int) (height * 0.2F) + 108, 0xFF0F0F0F);
-		ctx.drawCenteredTextWithShadow(this.textRenderer, "Name", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.savename"), 
 				(int) (width * 0.27F), (int) (height * 0.25F), 0xFFFFFFFF);
-		ctx.drawCenteredTextWithShadow(this.textRenderer, "Date", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.date"), 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 18, 0xFFFFFFFF);
-		ctx.drawCenteredTextWithShadow(this.textRenderer, "Messages", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.messages"), 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 36, 0xFFFFFFFF);
-		ctx.drawCenteredTextWithShadow(this.textRenderer, "Seconds", 
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.seconds"), 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 54, 0xFFFFFFFF);
 		this.saveName.render(ctx, mouseX, mouseY, height);
 		this.date.render(ctx, mouseX, mouseY, height);
