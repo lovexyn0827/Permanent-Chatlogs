@@ -7,10 +7,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.gui.SessionListScreen;
+import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 
 @Mixin(TitleScreen.class)
@@ -22,7 +22,7 @@ public class TitleScreenMixin extends Screen {
 	@Inject(method = "init", at = @At("RETURN"))
 	private void onInit(CallbackInfo ci) {
 		this.addDrawableChild(new ButtonWidget(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20, 
-				new LiteralText("Chat Logs"), (btn) -> this.client.setScreen(new SessionListScreen())));
+				I18N.translateAsText("gui.chatlogs"), (btn) -> this.client.setScreen(new SessionListScreen())));
 		Session.tryRestoreUnsaved();
 	}
 }
