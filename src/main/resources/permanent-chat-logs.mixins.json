@@ -10,7 +10,8 @@
 		"WorldListWidgetWorldEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
-		"CreateWorldScreenMixin"
+		"CreateWorldScreenMixin", 
+		"LanguageManagerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

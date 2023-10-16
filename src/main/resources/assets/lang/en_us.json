@@ -1,0 +1,18 @@
+{
+	"readableName" : "English (US)", 
+	"translations" : {
+		"gui.prev" : "Previous", 
+		"gui.next" : "Next", 
+		"gui.chatlogs" : "Chat Logs", 
+		"gui.filter" : "Filter", 
+		"gui.filter.sessions" : "Filter Sessions", 
+		"gui.filter.savename" : "Save Name", 
+		"gui.filter.date" : "Date", 
+		"gui.filter.messages" : "Message Count", 
+		"gui.filter.seconds" : "Seconds", 
+		"gui.unknowntime" : "UNKNOWN TIME", 
+		"gui.search" : "Search", 
+		"gui.settings" : "Settings", 
+		"gui.sizeandtime" : "%d:%d:%d (%d Messages)"
+	}
+}
