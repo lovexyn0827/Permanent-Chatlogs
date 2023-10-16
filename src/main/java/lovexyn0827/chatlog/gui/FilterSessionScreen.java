@@ -1,9 +1,7 @@
 package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.temporal.ChronoField;
+import java.time.ZonedDateTime;
 import java.util.function.Predicate;
 
 import com.mojang.brigadier.StringReader;
@@ -36,23 +34,39 @@ public final class FilterSessionScreen extends Screen {
 		};
 		try {
 			String dateStr = this.date.getText();
-			if(dateStr.matches("[0-9]+\\-[0-9]+\\-[0-9]+")) {
-				LocalDate date = LocalDate.parse(dateStr);
-				this.filterer = this.filterer.and((s) -> date.equals(
-						LocalDate.ofEpochDay(s.startTime / 86400000)));
-			} else if (dateStr.matches("[0-9]+\\-[0-9]+")){
-				YearMonth date = YearMonth.parse(dateStr);
+			if(dateStr.matches("^\\d+$")) {
+				int y;
+				int m;
+				int d;
+				int raw = Integer.parseInt(dateStr);
+				switch(dateStr.length()) {
+				case 4:
+					y = raw;
+					m = 0;
+					d = 0;
+					break;
+				case 6:
+					y = raw / 100;
+					m = raw % 100;
+					d = 0;
+					break;
+				default:
+					y = raw / 10000;
+					m = (raw / 100) % 100;
+					d = raw % 100;
+					break;
+				}
+				
 				this.filterer = this.filterer.and((s) -> {
-					Instant sT = Instant.ofEpochMilli(s.startTime);
-					return date.equals(YearMonth.of(sT.get(ChronoField.YEAR), sT.get(ChronoField.MONTH_OF_YEAR)));
-				});
-			} else if(dateStr.matches("[0-9]+")) {
-				int year = Integer.parseInt(dateStr);
-				this.filterer = this.filterer.and((s) -> {
-					return Instant.ofEpochMilli(s.startTime).get(ChronoField.YEAR) == year;
+					ZonedDateTime start = ZonedDateTime.ofInstant(
+							Instant.ofEpochMilli(s.startTime), s.timeZone.toZoneId());
+					return start.getYear() == y
+							&& (m == 0 || start.getMonthValue() == m)
+							&& (d == 0 || start.getDayOfMonth() == d);
 				});
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		try {
