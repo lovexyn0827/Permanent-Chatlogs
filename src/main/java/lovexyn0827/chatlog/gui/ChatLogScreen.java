@@ -52,9 +52,9 @@ public final class ChatLogScreen extends Screen {
 	@Override
 	public void render(MatrixStack matrices, int mouseX, int mouseY, float delta) {
 		this.renderBackground(matrices);
+		super.render(matrices, mouseX, mouseY, delta);
 		this.chatlogs.render(matrices, mouseX, mouseY, delta);
 		this.searchField.render(matrices, mouseX, mouseY, delta);
-		super.render(matrices, mouseX, mouseY, delta);
 	}
 	
 	@Override
