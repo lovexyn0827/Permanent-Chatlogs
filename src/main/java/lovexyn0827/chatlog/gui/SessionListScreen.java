@@ -36,7 +36,6 @@ public final class SessionListScreen extends Screen {
 	protected void init() {
 		this.displayedSessions = new SessionList(this.client);
 		this.addDrawableChild(this.displayedSessions);
-		
 		ButtonWidget prevBtn = ButtonWidget.builder(I18N.translateAsText("gui.prev"), 
 						(btn) -> this.displayedSessions.turnPage(false))
 				.dimensions(this.width / 2 - 128, this.height - 23, 120, 20)
