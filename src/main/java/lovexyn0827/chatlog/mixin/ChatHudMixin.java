@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.config.Options;
 
-@Mixin(ChatHud.class)
+@Mixin(value = ChatHud.class, priority = 2023)
 public class ChatHudMixin {
 	@Inject(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;"
 			+ "ILnet/minecraft/client/gui/hud/MessageIndicator;Z)V", at = @At("HEAD"))
