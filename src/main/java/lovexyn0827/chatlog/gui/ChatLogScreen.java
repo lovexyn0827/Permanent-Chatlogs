@@ -18,7 +18,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.ChatMessages;
@@ -67,8 +66,7 @@ public final class ChatLogScreen extends Screen {
 		
 		public ChatLogWidget(MinecraftClient client, Session session) {
 			super(client, ChatLogScreen.this.client.getWindow().getScaledWidth(), 
-					ChatLogScreen.this.height, 
-					20, ChatLogScreen.this.height - 20, client.textRenderer.fontHeight + 1);
+					ChatLogScreen.this.height - 40, 20, client.textRenderer.fontHeight + 1);
 			session.getAllMessages().forEach((l) -> {
 				ChatMessages.breakRenderedChatMessageLines(l.message, 
 						ChatLogScreen.this.client.getWindow().getScaledWidth() - 14, 
@@ -84,7 +82,7 @@ public final class ChatLogScreen extends Screen {
 		
 		@Override
 		protected int getScrollbarPositionX() {
-			return this.right - 5;
+			return this.getRight() - 5;
 		}
 		
 		@Override
@@ -100,10 +98,6 @@ public final class ChatLogScreen extends Screen {
 					.filter((e) -> e.lineStr.contains(in))
 					.collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 			this.setScrollAmount(0);
-		}
-		
-		@Override
-		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {

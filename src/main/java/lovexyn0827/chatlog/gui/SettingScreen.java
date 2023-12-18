@@ -53,8 +53,7 @@ public final class SettingScreen extends Screen {
 	
 	private final class OptionListWidget extends EntryListWidget<OptionListWidget.Entry> {
 		public OptionListWidget(MinecraftClient client) {
-			super(client, SettingScreen.this.width, SettingScreen.this.height, 
-					14, SettingScreen.this.height - 16, 18);
+			super(client, SettingScreen.this.width, SettingScreen.this.height - 32, 16, 18);
 		}
 		
 		@Override
@@ -66,10 +65,6 @@ public final class SettingScreen extends Screen {
 			Entry e = new Entry(f);
 			SettingScreen.this.addDrawableChild(e.textField);
 			return this.addEntry(e);
-		}
-
-		@Override
-		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {
@@ -114,9 +109,12 @@ public final class SettingScreen extends Screen {
 
 			@Override
 			public List<? extends Selectable> selectableChildren() {
-				// TODO Auto-generated method stub
 				return new ArrayList<>();
 			}
+		}
+
+		@Override
+		protected void appendClickableNarrations(NarrationMessageBuilder var1) {
 		}
 	}
 }

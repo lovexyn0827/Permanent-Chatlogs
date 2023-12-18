@@ -16,8 +16,8 @@ public abstract class WorldListWidgetWorldEntryMixin {
 	@Shadow
 	private @Final LevelSummary level;
 	
-	@Inject(method = "play", at = @At(value = "INVOKE", target = "net/minecraft/client/gui/screen/world/WorldListWidget$WorldEntry."
-			+ "start()V"), cancellable = true)
+	@Inject(method = "play", at = @At(value = "INVOKE", target = "net/minecraft/client/MinecraftClient"
+			+ ".createIntegratedServerLoader()Lnet/minecraft/server/integrated/IntegratedServerLoader;"))
 	private void onOpenWorld(CallbackInfo ci) {
 		Session.current = new Session(this.level.getDisplayName());
 	}

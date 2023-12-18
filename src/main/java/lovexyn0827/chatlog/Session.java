@@ -547,7 +547,7 @@ public final class Session {
 		public void serialize(JsonWriter jw, Object2IntMap<UUID> uuids) throws IOException {
 			jw.beginObject();
 			jw.name("sender").value(uuids.computeIntIfAbsent(this.sender, (k) -> uuids.size()));
-			jw.name("msgJson").value(Text.Serializer.toJson(this.message));
+			jw.name("msgJson").value(Text.Serialization.toJsonString(this.message));
 			jw.name("time").value(this.time);
 			jw.endObject();
 		}
@@ -579,21 +579,21 @@ public final class Session {
 			}
 			
 			jr.endObject();
-			return new Proto(sender, Text.Serializer.fromJson(msgJson), time);
+			return new Proto(sender, Text.Serialization.fromJson(msgJson), time);
 		}
 		
 		public static Line parseFull(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
 			return new Line(UUID.fromString(jo.get("sender").getAsString()), 
-					Text.Serializer.fromJson(jo.get("msgJson").getAsString()), 
+					Text.Serialization.fromJson(jo.get("msgJson").getAsString()), 
 					jo.get("time").getAsLong());
 		}
 
 		public JsonObject serializeWithoutIndex() {
 			JsonObject line = new JsonObject();
 			line.addProperty("sender", this.sender.toString());
-			line.addProperty("msgJson", Text.Serializer.toJson(this.message));
+			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
 			line.addProperty("time", this.time);
 			return line;
 		}

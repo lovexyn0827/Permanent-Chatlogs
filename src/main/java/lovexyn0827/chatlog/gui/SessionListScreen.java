@@ -75,8 +75,7 @@ public final class SessionListScreen extends Screen {
 		private int currentPage = 0;
 		
 		public SessionList(MinecraftClient mc) {
-			super(mc, SessionListScreen.this.width, SessionListScreen.this.height, 
-					20, SessionListScreen.this.height - 34, 32);
+			super(mc, SessionListScreen.this.width, SessionListScreen.this.height - 68, 34, 32);
 			this.toPage(0);
 		}
 		
