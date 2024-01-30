@@ -11,7 +11,8 @@
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
 		"CreateWorldScreenMixin", 
-		"LanguageManagerMixin"
+		"LanguageManagerMixin", 
+		"ChaHudMixin_overrideMaxMessages"
 	],
 	"injectors": {
 		"defaultRequire": 1
