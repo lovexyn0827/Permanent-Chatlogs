@@ -12,7 +12,9 @@
 		"ChatScreenMixin", 
 		"CreateWorldScreenMixin", 
 		"LanguageManagerMixin", 
-		"ChaHudMixin_overrideMaxMessages"
+		"ChaHudMixin_overrideMaxMessages", 
+		"ClickEventActionMixin", 
+		"HoverEventActionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
