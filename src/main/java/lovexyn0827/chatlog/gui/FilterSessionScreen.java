@@ -2,6 +2,7 @@ package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.function.Predicate;
 
 import com.mojang.brigadier.StringReader;
@@ -32,29 +33,35 @@ public final class FilterSessionScreen extends Screen {
 		this.filterer = (s) -> {
 			return s.saveName.contains(this.saveName.getText());
 		};
+		selectDate:
 		try {
 			String dateStr = this.date.getText();
-			if(dateStr.matches("^\\d+$")) {
+			int[] dateComps = Arrays.stream(dateStr.split("[^0-9]"))
+					.filter((s) -> s.matches("^\\d+$"))
+					.mapToInt(Integer::parseInt)
+					.toArray();
+			if(dateComps.length > 0 && dateComps.length <= 3) {
 				int y;
 				int m;
 				int d;
-				int raw = Integer.parseInt(dateStr);
-				switch(dateStr.length()) {
-				case 4:
-					y = raw;
+				switch(dateComps.length) {
+				case 1:
+					y = dateComps[0];
 					m = 0;
 					d = 0;
 					break;
-				case 6:
-					y = raw / 100;
-					m = raw % 100;
+				case 2:
+					y = dateComps[0];
+					m = dateComps[1];
 					d = 0;
 					break;
-				default:
-					y = raw / 10000;
-					m = (raw / 100) % 100;
-					d = raw % 100;
+				case 3:
+					y = dateComps[0];
+					m = dateComps[1];
+					d = dateComps[2];
 					break;
+				default:
+					break selectDate;
 				}
 				
 				this.filterer = this.filterer.and((s) -> {
