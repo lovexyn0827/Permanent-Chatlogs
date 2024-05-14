@@ -11,7 +11,9 @@
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
 		"CreateWorldScreenMixin", 
-		"LanguageManagerMixin"
+		"LanguageManagerMixin", 
+		"ClickEventActionMixin", 
+		"HoverEventActionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class PermanentChatLogMod implements ModInitializer {
     public static final Logger LOGGER = LogManager.getLogger("permanent-chat-logs");
+    public static final ThreadLocal<Boolean> PERMISSIVE_EVENTS = ThreadLocal.withInitial(() -> false);
     
 	@Override
 	public void onInitialize() {
