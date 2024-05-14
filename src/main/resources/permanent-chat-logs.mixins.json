@@ -10,7 +10,9 @@
 		"WorldListWidgetEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
-		"LanguageManagerMixin"
+		"LanguageManagerMixin", 
+		"ClickEventActionMixin", 
+		"HoverEventActionMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

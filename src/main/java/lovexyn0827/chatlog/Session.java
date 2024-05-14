@@ -151,11 +151,12 @@ public final class Session {
 				case "messages":
 					protos = new ArrayList<>();
 					jr.beginArray();
-					protos = new ArrayList<>();
-					while(jr.hasNext()) {
-						protos.add(Line.parse(jr));
-					}
-					
+					List<Line.Proto> fuckLambda = protos = new ArrayList<>();
+					wrapTextSerialization(() -> {
+						while(jr.hasNext()) {
+							fuckLambda.add(Line.parse(jr));
+						}
+					});
 					jr.endArray();
 					break;
 				case "senders":
@@ -239,6 +240,15 @@ public final class Session {
 		this.tempFileWriter = null;
 	}
 	
+	private static void wrapTextSerialization(RunnableWithIOException task) throws IOException {
+		try {
+			PermanentChatLogMod.PERMISSIVE_EVENTS.set(true);
+			task.run();
+		} finally {
+			PermanentChatLogMod.PERMISSIVE_EVENTS.set(false);
+		}
+	}
+	
 	public static void tryRestoreUnsaved() {
 		if(!UNSAVED.exists() || UNSAVED.length() == 0) {
 			return;
@@ -260,7 +270,7 @@ public final class Session {
 					String l = s.nextLine();
 					switch(l.charAt(0)) {
 					case 'M':
-						lines.add(Line.parseFull(l.substring(1)));
+						wrapTextSerialization(() -> lines.add(Line.parseFull(l.substring(1))));
 						break;
 					case 'S':
 						try(Scanner scannerForLine = new Scanner(l.substring(1))) {
@@ -357,10 +367,11 @@ public final class Session {
 			jw.beginObject();
 			jw.name("messages").beginArray();
 			Object2IntMap<UUID> uuids = new Object2IntOpenHashMap<>();
-			for(Line line : this.chatLogs) {
-				line.serialize(jw, uuids);
-			}
-			
+			wrapTextSerialization(() -> {
+				for(Line line : this.chatLogs) {
+					line.serialize(jw, uuids);
+				}
+			});
 			jw.endArray();
 			jw.name("senders").beginArray();
 			for(Entry<UUID> e : uuids.object2IntEntrySet()) {
@@ -395,10 +406,11 @@ public final class Session {
 		Thread saveWorker = new Thread(() -> {
 			try {
 				ArrayList<Line> allLines = new ArrayList<>(this.chatLogs);
-				for(Line l : allLines.subList(this.lastAutoSaveMessageCount, allLines.size())) {
-					this.tempFileWriter.println("M" + l.serializeWithoutIndex());
-				}
-
+				wrapTextSerialization(() -> {
+					for(Line l : allLines.subList(this.lastAutoSaveMessageCount, allLines.size())) {
+						this.tempFileWriter.println("M" + l.serializeWithoutIndex());
+					}
+				});
 				this.lastAutoSaveMessageCount = allLines.size();
 				ArrayList<Map.Entry<UUID, String>> allSenderers = new ArrayList<>(this.uuidToName.entrySet());
 				List<java.util.Map.Entry<UUID, String>> senderersToSave = allSenderers
@@ -650,5 +662,10 @@ public final class Session {
 				}
 			}
 		}
+	}
+	
+	@FunctionalInterface
+	private interface RunnableWithIOException {
+		void run() throws IOException;
 	}
 }
