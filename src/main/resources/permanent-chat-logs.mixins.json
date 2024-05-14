@@ -11,8 +11,6 @@
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
 		"LanguageManagerMixin", 
-		"CreateWorldScreenMixin", 
-		"LanguageManagerMixin", 
 		"ClickEventActionMixin", 
 		"HoverEventActionMixin"
 	],
