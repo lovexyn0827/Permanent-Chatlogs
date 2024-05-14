@@ -292,6 +292,8 @@ public final class Session {
 		
 		if(success.getValue()) {
 			UNSAVED.delete();
+		} else {
+			UNSAVED.renameTo(new File(CHATLOG_FOLDER, "unsaved_" + System.currentTimeMillis() + ".tmp"));
 		}
 	}
 
@@ -390,7 +392,7 @@ public final class Session {
 			}
 			
 			this.shouldSaveOnDisconnection = true;
-		} catch (IOException e1) {
+		} catch (Exception e1) {
 			LOGGER.error("Failed to save chat logs!");
 			e1.printStackTrace();
 		}
