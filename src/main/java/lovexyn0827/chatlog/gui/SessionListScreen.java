@@ -61,7 +61,7 @@ public final class SessionListScreen extends Screen {
 		private final List<Session.Summary> allSessions = Session.getSessionSummaries()
 				.stream()
 				.filter(SessionListScreen.this.filterer)
-				.sorted((s1, s2) -> (int) (s2.startTime - s1.startTime))
+				.sorted((s1, s2) -> (int) Math.signum((double) (s2.startTime - s1.startTime)))
 				.collect(Collectors.toList());
 		private List<Session.Summary> visibleSessions;
 		private int currentPage = 0;
