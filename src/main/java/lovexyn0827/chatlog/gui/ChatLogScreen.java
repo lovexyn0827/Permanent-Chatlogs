@@ -81,7 +81,7 @@ public final class ChatLogScreen extends Screen {
 		}
 		
 		@Override
-		protected int getScrollbarPositionX() {
+		protected int getScrollbarX() {
 			return this.getRight() - 5;
 		}
 		

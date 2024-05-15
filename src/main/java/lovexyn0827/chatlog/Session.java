@@ -46,6 +46,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lovexyn0827.chatlog.config.Options;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.registry.DynamicRegistryManager;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
@@ -547,7 +548,7 @@ public final class Session {
 		public void serialize(JsonWriter jw, Object2IntMap<UUID> uuids) throws IOException {
 			jw.beginObject();
 			jw.name("sender").value(uuids.computeIntIfAbsent(this.sender, (k) -> uuids.size()));
-			jw.name("msgJson").value(Text.Serialization.toJsonString(this.message));
+			jw.name("msgJson").value(Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
 			jw.name("time").value(this.time);
 			jw.endObject();
 		}
@@ -579,21 +580,21 @@ public final class Session {
 			}
 			
 			jr.endObject();
-			return new Proto(sender, Text.Serialization.fromJson(msgJson), time);
+			return new Proto(sender, Text.Serialization.fromJson(msgJson, DynamicRegistryManager.EMPTY), time);
 		}
 		
 		public static Line parseFull(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
 			return new Line(UUID.fromString(jo.get("sender").getAsString()), 
-					Text.Serialization.fromJson(jo.get("msgJson").getAsString()), 
+					Text.Serialization.fromJson(jo.get("msgJson").getAsString(), DynamicRegistryManager.EMPTY), 
 					jo.get("time").getAsLong());
 		}
 
 		public JsonObject serializeWithoutIndex() {
 			JsonObject line = new JsonObject();
 			line.addProperty("sender", this.sender.toString());
-			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
+			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
 			line.addProperty("time", this.time);
 			return line;
 		}

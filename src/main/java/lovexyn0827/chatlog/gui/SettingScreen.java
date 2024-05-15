@@ -41,7 +41,6 @@ public final class SettingScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-		this.renderBackgroundTexture(ctx);
 		super.render(ctx, mouseX, mouseY, delta);
 		this.optionList.render(ctx, mouseX, mouseY, delta);
 	}
