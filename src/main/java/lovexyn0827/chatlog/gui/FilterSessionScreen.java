@@ -125,7 +125,7 @@ public final class FilterSessionScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-		this.renderBackground(ctx, mouseY, mouseY, delta);
+		super.render(ctx, mouseX, mouseY, delta);
 		int width = this.client.getWindow().getScaledWidth();
 		int height = this.client.getWindow().getScaledHeight();
 		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.savename"), 
@@ -140,6 +140,5 @@ public final class FilterSessionScreen extends Screen {
 		this.date.render(ctx, mouseX, mouseY, height);
 		this.size.render(ctx, mouseX, mouseY, height);
 		this.seconds.render(ctx, mouseX, mouseY, height);
-		super.render(ctx, mouseX, mouseY, delta);
 	}
 }
