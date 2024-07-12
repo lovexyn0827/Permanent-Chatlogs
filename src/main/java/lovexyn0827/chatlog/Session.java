@@ -90,7 +90,8 @@ public final class Session {
     private static final File UNSAVED = new File(CHATLOG_FOLDER, "latest.tmp");
 	private static int visibleChatlogLimit = 10000;
 	public static Session current;
-	private final ArrayDeque<Line> chatLogs;
+	private volatile ArrayDeque<Line> currentChatLogs;
+	private volatile boolean autosaveOngoing = false;
 	private final File chatlogFile;
 	private final File tempFile;
 	private final PrintWriter tempFileWriter;
@@ -106,8 +107,9 @@ public final class Session {
 	private int lastAutoSaveMessageCount = 0;
 	private int lastAutoSaveSendererCount = 0;
 	
+	// Create a new instance to record a session
 	public Session(String saveName) {
-		this.chatLogs = new ArrayDeque<>();
+		this.currentChatLogs = new ArrayDeque<>();
 		this.uuidToName = new LinkedHashMap<>();
 		this.id = allocateId();
 		this.chatlogFile = id2File(this.id);
@@ -130,6 +132,7 @@ public final class Session {
 		this.tempFileWriter = temp;
 	}
 	
+	// Read from file
 	private Session(File file, String saveName, long start, long end, TimeZone timeZone) 
 			throws MalformedJsonException {
 		this.chatlogFile = file;
@@ -209,15 +212,25 @@ public final class Session {
 		} catch (IOException e1) {
 			LOGGER.error("Failed to load chat logs!");
 			e1.printStackTrace();
-			throw new RuntimeException("Failed to load chat logs!", e1);
+			if (Options.allowCorruptedChatlogs) {
+				if (protos == null) {
+					protos = new ArrayList<>();
+				}
+				
+				if (uuidToName == null) {
+					uuidToName = new LinkedHashMap<>();
+				}
+			} else {
+				throw new RuntimeException("Failed to load chat logs!", e1);
+			}
 		}
 		
-		if(uuidToName == null || protos == null) {
+		if (uuidToName == null || protos == null) {
 			throw new MalformedJsonException("Incomplete chat log");
 		}
 		
 		this.uuidToName = uuidToName;
-		this.chatLogs = protos.stream()
+		this.currentChatLogs = protos.stream()
 				.map((p) -> p.toLine(uuids))
 				.<ArrayDeque<Line>>collect(ArrayDeque<Line>::new, ArrayDeque::add, (r1, r2) -> {});
 		this.saveName = saveName;
@@ -225,9 +238,10 @@ public final class Session {
 		this.endTime = end;
 	}
 	
+	// Restore unsaved?
 	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
 			long startTime, long endTime, TimeZone timeZone) {
-		this.chatLogs = chatLogs;
+		this.currentChatLogs = chatLogs;
 		this.uuidToName = uuidToName;
 		this.saveName = saveName;
 		this.id = id;
@@ -299,7 +313,7 @@ public final class Session {
 
 	public void onMessage(UUID sender, Text msg) {
 		// TODO Limit memory usage
-		this.chatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
+		this.currentChatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
 		this.visibleLineCache = null;
 		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
 			// Naive solution?
@@ -314,13 +328,13 @@ public final class Session {
 	}
 	
 	public Iterable<Line> getVisibleLines() {
-		if(this.chatLogs.size() <= visibleChatlogLimit) {
-			return this.chatLogs.clone();
+		if(this.currentChatLogs.size() <= visibleChatlogLimit) {
+			return this.currentChatLogs.clone();
 		} else {
 			if(this.visibleLineCache != null) {
 				return this.visibleLineCache;
 			} else {
-				Iterator<Line> itr = this.chatLogs.descendingIterator();
+				Iterator<Line> itr = this.currentChatLogs.descendingIterator();
 				ArrayDeque<Line> result = new ArrayDeque<>();
 				for(int i = 0; i < visibleChatlogLimit; i++) {
 					result.addFirst(itr.next());
@@ -333,7 +347,7 @@ public final class Session {
 	}
 	
 	public ArrayDeque<Line> getAllMessages() {
-		return this.chatLogs;
+		return this.currentChatLogs;
 	}
 	
 	public void saveAll() {
@@ -363,13 +377,13 @@ public final class Session {
 //			
 //			root.add("senders", uuidList);
 			Gson gson = new Gson();
-			writeIndex(this.chatLogs.size());
+			writeIndex(this.currentChatLogs.size());
 			JsonWriter jw = gson.newJsonWriter(writer);
 			jw.beginObject();
 			jw.name("messages").beginArray();
 			Object2IntMap<UUID> uuids = new Object2IntOpenHashMap<>();
 			wrapTextSerialization(() -> {
-				for(Line line : this.chatLogs) {
+				for(Line line : this.currentChatLogs) {
 					line.serialize(jw, uuids);
 				}
 			});
@@ -399,14 +413,17 @@ public final class Session {
 	}
 	
 	public void autoSave() {
-		if(this.tempFile == null) {
+		if(this.tempFile == null || this.autosaveOngoing) {
 			return;
 		}
 		
+		this.autosaveOngoing = true;
+		ArrayDeque<Line> autosavingChatlog = this.currentChatLogs;
+		this.currentChatLogs = new ArrayDeque<>();
 		this.nextAutoSave = System.currentTimeMillis() + Options.autoSaveIntervalInMs;
 		Thread saveWorker = new Thread(() -> {
 			try {
-				ArrayList<Line> allLines = new ArrayList<>(this.chatLogs);
+				ArrayList<Line> allLines = new ArrayList<>(autosavingChatlog);
 				wrapTextSerialization(() -> {
 					for(Line l : allLines.subList(this.lastAutoSaveMessageCount, allLines.size())) {
 						this.tempFileWriter.println("M" + l.serializeWithoutIndex());
@@ -426,6 +443,8 @@ public final class Session {
 			} catch (Exception e) {
 				LOGGER.error("Failed to perform autosave!");
 				e.printStackTrace();
+			} finally {
+				this.autosaveOngoing = false;
 			}
 		}, "ChatLog Autosave Worker");
 		saveWorker.start();

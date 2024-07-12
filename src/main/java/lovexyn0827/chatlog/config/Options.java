@@ -18,6 +18,9 @@ public final class Options {
 	
 	@Option(type = OptionType.INTEGER, defaultValue = "100000")
 	public static int autoSaveIntervalInMs = 100000;
+
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean allowCorruptedChatlogs = true;
 	
 	private Options() {}
 	
