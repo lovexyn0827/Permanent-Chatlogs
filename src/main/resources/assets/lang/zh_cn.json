@@ -13,6 +13,8 @@
 		"gui.unknowntime" : "未知时间", 
 		"gui.search" : "搜索", 
 		"gui.settings" : "设置", 
-		"gui.sizeandtime" : "%d:%d:%d（%d条消息）"
+		"gui.sizeandtime" : "%d:%d:%d（%d条消息）", 
+		"gui.sload.failure": "未能成功加载聊天记录", 
+		"gui.sload.failure.desc": "聊天记录可能已被损坏或删除"
 	}
 }

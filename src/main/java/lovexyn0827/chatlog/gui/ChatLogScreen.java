@@ -33,10 +33,10 @@ public final class ChatLogScreen extends Screen {
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
 	
-	protected ChatLogScreen(Session.Summary s) {
-		super(Text.literal(s.saveName));
-		this.session = Session.load(s);
-		this.timeZone = s.timeZone.toZoneId();
+	protected ChatLogScreen(Session.Summary metadata, Session session) {
+		super(Text.literal(metadata.saveName));
+		this.session = session;
+		this.timeZone = metadata.timeZone.toZoneId();
 	}
 
 	@Override

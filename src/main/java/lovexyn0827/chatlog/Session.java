@@ -1,7 +1,8 @@
 package lovexyn0827.chatlog;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -14,7 +15,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,15 +23,13 @@ import java.util.Properties;
 import java.util.Scanner;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
-
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -42,13 +41,12 @@ import io.netty.util.internal.StringUtil;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lovexyn0827.chatlog.config.Options;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
+
 
 public final class Session {
 	private static final Logger LOGGER = LogManager.getLogger("ChatlogSession");
@@ -87,170 +85,43 @@ public final class Session {
 	});
 	private static final File INDEX = new File(CHATLOG_FOLDER, "index.ssv");
     public static final int FORMAT_VERSION = 0;
-    private static final File UNSAVED = new File(CHATLOG_FOLDER, "latest.tmp");
-	private static int visibleChatlogLimit = 10000;
 	public static Session current;
-	private volatile ArrayDeque<Line> currentChatLogs;
-	private volatile boolean autosaveOngoing = false;
-	private final File chatlogFile;
-	private final File tempFile;
-	private final PrintWriter tempFileWriter;
+	private Deque<Line> cachedChatLogs;
 	private final LinkedHashMap<UUID, String> uuidToName;
-	private ArrayDeque<Line> visibleLineCache;
 	private final String saveName;
 	private final int id;
 	private final long startTime;
 	private long endTime;
 	public boolean shouldSaveOnDisconnection = false;
 	private final TimeZone timeZone;
-	private long nextAutoSave = Options.autoSaveIntervalInMs == 0 ? Long.MAX_VALUE : 0;
-	private int lastAutoSaveMessageCount = 0;
-	private int lastAutoSaveSendererCount = 0;
+	private volatile boolean finalSaving = false;
+	private long messageCount = 0;
+	private final Thread autosaveWorker;
 	
 	// Create a new instance to record a session
 	public Session(String saveName) {
-		this.currentChatLogs = new ArrayDeque<>();
+		this.cachedChatLogs = new ConcurrentLinkedDeque<>();
 		this.uuidToName = new LinkedHashMap<>();
 		this.id = allocateId();
-		this.chatlogFile = id2File(this.id);
 		this.saveName = saveName;
 		this.startTime = System.currentTimeMillis();
 		this.endTime = this.startTime;
 		this.timeZone = TimeZone.getDefault();
-		this.tempFile = UNSAVED;
-		PrintWriter temp;
-		try {
-			temp = new PrintWriter(new BufferedWriter(new FileWriter(this.tempFile)));
-			temp.println(String.format("%d,%s,%d,%s", 
-					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, this.timeZone.getID()));
-		} catch (IOException e) {
-			LOGGER.error("Failed to create temp file for chat logs!");
-			e.printStackTrace();
-			temp = null;
-		}
-		
-		this.tempFileWriter = temp;
-	}
-	
-	// Read from file
-	private Session(File file, String saveName, long start, long end, TimeZone timeZone) 
-			throws MalformedJsonException {
-		this.chatlogFile = file;
-		this.id = file2Id(file);
-		this.timeZone = timeZone;
-		this.tempFile = null;
-		this.tempFileWriter = null;
-		List<Line.Proto> protos = null;
-		LinkedHashMap<UUID, String> uuidToName = null;
-		Int2ObjectMap<UUID> uuids = new Int2ObjectOpenHashMap<>();
-		try (InputStreamReader reader = new InputStreamReader(
-				new GZIPInputStream(new FileInputStream(file)))) {
-			//System.out.println(String.valueOf(IOUtils.readLines(reader)));
-			JsonReader jr = new Gson().newJsonReader(reader);
-			jr.beginObject();
-			while(jr.hasNext()) {
-				switch(jr.nextName()) {
-				case "messages":
-					protos = new ArrayList<>();
-					jr.beginArray();
-					List<Line.Proto> fuckLambda = protos = new ArrayList<>();
-					wrapTextSerialization(() -> {
-						while(jr.hasNext()) {
-							fuckLambda.add(Line.parse(jr));
-						}
-					});
-					jr.endArray();
-					break;
-				case "senders":
-					uuidToName = new LinkedHashMap<>();
-					jr.beginArray();
-					while(jr.hasNext()) {
-						jr.beginObject();
-						Integer id = null;
-						String name = null;
-						Long uuid_m = null;
-						Long uuid_l = null;
-						while(jr.hasNext()) {
-							switch(jr.nextName()) {
-							case "id":
-								id = jr.nextInt();
-								break;
-							case "name":
-								name = jr.nextString();
-								break;
-							case "uuid_m":
-								uuid_m = jr.nextLong();
-								break;
-							case "uuid_l":
-								uuid_l = jr.nextLong();
-								break;
-							default:
-								jr.skipValue();
-								break;
-							}
-						}
-						
-						if(id == null || name == null || uuid_m == null || uuid_l == null) {
-							throw new MalformedJsonException("Incomplete sender info");
-						}
-						
-						UUID uuid = new UUID(uuid_m, uuid_l);
-						uuidToName.put(uuid, name);
-						uuids.put(id.intValue(), uuid);
-						jr.endObject();
-					}
-					
-					jr.endArray();
-					break;
-				default:
-					jr.skipValue();
-					//throw new RuntimeException("Unrecognized name: " + name);
-				}
-			}
-			
-			jr.endObject();
-		} catch (IOException e1) {
-			LOGGER.error("Failed to load chat logs!");
-			e1.printStackTrace();
-			if (Options.allowCorruptedChatlogs) {
-				if (protos == null) {
-					protos = new ArrayList<>();
-				}
-				
-				if (uuidToName == null) {
-					uuidToName = new LinkedHashMap<>();
-				}
-			} else {
-				throw new RuntimeException("Failed to load chat logs!", e1);
-			}
-		}
-		
-		if (uuidToName == null || protos == null) {
-			throw new MalformedJsonException("Incomplete chat log");
-		}
-		
-		this.uuidToName = uuidToName;
-		this.currentChatLogs = protos.stream()
-				.map((p) -> p.toLine(uuids))
-				.<ArrayDeque<Line>>collect(ArrayDeque<Line>::new, ArrayDeque::add, (r1, r2) -> {});
-		this.saveName = saveName;
-		this.startTime = start;
-		this.endTime = end;
+		this.autosaveWorker = new AutosaveWorker();
+		this.autosaveWorker.start();
 	}
 	
 	// Restore unsaved?
 	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
 			long startTime, long endTime, TimeZone timeZone) {
-		this.currentChatLogs = chatLogs;
+		this.cachedChatLogs = chatLogs;
 		this.uuidToName = uuidToName;
 		this.saveName = saveName;
 		this.id = id;
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.timeZone = timeZone;
-		this.chatlogFile = id2File(id);
-		this.tempFile = null;
-		this.tempFileWriter = null;
+		this.autosaveWorker = null;
 	}
 	
 	private static void wrapTextSerialization(RunnableWithIOException task) throws IOException {
@@ -261,60 +132,10 @@ public final class Session {
 			PermanentChatLogMod.PERMISSIVE_EVENTS.set(false);
 		}
 	}
-	
-	public static void tryRestoreUnsaved() {
-		if(!UNSAVED.exists() || UNSAVED.length() == 0) {
-			return;
-		}
-		
-		MutableBoolean success = new MutableBoolean(false);
-		try(Scanner s = new Scanner(new BufferedReader(new FileReader(UNSAVED)))) {
-			long endTime = UNSAVED.lastModified();
-			s.useDelimiter(",");
-			int id = Integer.parseInt(s.next());
-			if(checkAvailability(id)) {
-				String saveName = StringUtil.unescapeCsv(s.next()).toString();
-				long startTime = Long.parseLong(s.next());
-				TimeZone timeZone = TimeZone.getTimeZone(s.next());
-				s.nextLine();
-				ArrayDeque<Line> lines = new ArrayDeque<>();
-				LinkedHashMap<UUID, String> namesByUuid = new LinkedHashMap<>();
-				while(s.hasNextLine()) {
-					String l = s.nextLine();
-					switch(l.charAt(0)) {
-					case 'M':
-						wrapTextSerialization(() -> lines.add(Line.parseFull(l.substring(1))));
-						break;
-					case 'S':
-						try(Scanner scannerForLine = new Scanner(l.substring(1))) {
-							scannerForLine.useDelimiter(",");
-							namesByUuid.put(UUID.fromString(scannerForLine.next()), 
-									StringUtil.unescapeCsv(scannerForLine.next()).toString());
-						}
-						
-						break;
-					}
-				}
-				
-				new Session(lines, namesByUuid, saveName, id, startTime, endTime, timeZone).saveAll();
-				success.setTrue();
-			}
-		} catch (Exception e) {
-			LOGGER.error("Failed to restore unsaved chatlog!");
-			e.printStackTrace();
-		}
-		
-		if(success.getValue()) {
-			UNSAVED.delete();
-		} else {
-			UNSAVED.renameTo(new File(CHATLOG_FOLDER, "unsaved_" + System.currentTimeMillis() + ".tmp"));
-		}
-	}
 
 	public void onMessage(UUID sender, Text msg) {
 		// TODO Limit memory usage
-		this.currentChatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
-		this.visibleLineCache = null;
+		this.cachedChatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
 		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
 			// Naive solution?
 			String string = TextVisitFactory.removeFormattingCodes(msg);
@@ -322,139 +143,23 @@ public final class Session {
 			return name == null ? "[UNSPECIFIED]" : name;
 		});
 		this.shouldSaveOnDisconnection = true;
-		if(System.currentTimeMillis() > this.nextAutoSave) {
-			this.autoSave();
-		}
+		this.messageCount++;
 	}
 	
-	public Iterable<Line> getVisibleLines() {
-		if(this.currentChatLogs.size() <= visibleChatlogLimit) {
-			return this.currentChatLogs.clone();
-		} else {
-			if(this.visibleLineCache != null) {
-				return this.visibleLineCache;
-			} else {
-				Iterator<Line> itr = this.currentChatLogs.descendingIterator();
-				ArrayDeque<Line> result = new ArrayDeque<>();
-				for(int i = 0; i < visibleChatlogLimit; i++) {
-					result.addFirst(itr.next());
-				}
-				
-				this.visibleLineCache = result;
-				return result;
-			}
-		}
+	public Deque<Line> getAllMessages() {
+		return this.cachedChatLogs;
 	}
 	
-	public ArrayDeque<Line> getAllMessages() {
-		return this.currentChatLogs;
+	public void end() {
+		this.finalSaving = true;
 	}
 	
-	public void saveAll() {
-		this.endTime = System.currentTimeMillis();
-//		if(this.chatLogs.isEmpty()) {
-//			return;
-//		}
-//		
-		try (OutputStreamWriter writer = new OutputStreamWriter(
-				new GZIPOutputStream(new FileOutputStream(this.chatlogFile)))) {
-//			JsonObject root = new JsonObject();
-//			JsonArray lineList = new JsonArray();
-//			Object2IntMap<UUID> uuids = new Object2IntOpenHashMap<>();
-//			for(Line line : this.chatLogs) {
-//				lineList.add(line.serialize(uuids));
-//			}
-//			
-//			root.add("messages", lineList);
-//			JsonArray uuidList = new JsonArray();
-//			for(Entry<UUID> e : uuids.object2IntEntrySet()) {
-//				JsonObject item = new JsonObject();
-//				item.addProperty("id", e.getIntValue());
-//				item.addProperty("name", this.uuidToName.get(e.getKey()));
-//				item.addProperty("uuid_m", e.getKey().getMostSignificantBits());
-//				item.addProperty("uuid_l", e.getKey().getLeastSignificantBits());
-//			}
-//			
-//			root.add("senders", uuidList);
-			Gson gson = new Gson();
-			writeIndex(this.currentChatLogs.size());
-			JsonWriter jw = gson.newJsonWriter(writer);
-			jw.beginObject();
-			jw.name("messages").beginArray();
-			Object2IntMap<UUID> uuids = new Object2IntOpenHashMap<>();
-			wrapTextSerialization(() -> {
-				for(Line line : this.currentChatLogs) {
-					line.serialize(jw, uuids);
-				}
-			});
-			jw.endArray();
-			jw.name("senders").beginArray();
-			for(Entry<UUID> e : uuids.object2IntEntrySet()) {
-				jw.beginObject();
-				jw.name("id").value(e.getIntValue());
-				jw.name("name").value(this.uuidToName.get(e.getKey()));
-				jw.name("uuid_m").value(e.getKey().getMostSignificantBits());
-				jw.name("uuid_l").value(e.getKey().getLeastSignificantBits());
-				jw.endObject();
-			}
-			
-			jw.endArray();
-			jw.endObject();
-			if(this.tempFile != null) {
-				this.tempFileWriter.close();
-				this.tempFile.delete();
-			}
-			
-			this.shouldSaveOnDisconnection = true;
-		} catch (Exception e1) {
-			LOGGER.error("Failed to save chat logs!");
-			e1.printStackTrace();
-		}
-	}
-	
-	public void autoSave() {
-		if(this.tempFile == null || this.autosaveOngoing) {
-			return;
-		}
-		
-		this.autosaveOngoing = true;
-		ArrayDeque<Line> autosavingChatlog = this.currentChatLogs;
-		this.currentChatLogs = new ArrayDeque<>();
-		this.nextAutoSave = System.currentTimeMillis() + Options.autoSaveIntervalInMs;
-		Thread saveWorker = new Thread(() -> {
-			try {
-				ArrayList<Line> allLines = new ArrayList<>(autosavingChatlog);
-				wrapTextSerialization(() -> {
-					for(Line l : allLines.subList(this.lastAutoSaveMessageCount, allLines.size())) {
-						this.tempFileWriter.println("M" + l.serializeWithoutIndex());
-					}
-				});
-				this.lastAutoSaveMessageCount = allLines.size();
-				ArrayList<Map.Entry<UUID, String>> allSenderers = new ArrayList<>(this.uuidToName.entrySet());
-				List<java.util.Map.Entry<UUID, String>> senderersToSave = allSenderers
-						.subList(this.lastAutoSaveSendererCount, allSenderers.size());
-				for(Map.Entry<UUID, String> e : senderersToSave) {
-					this.tempFileWriter.println(String.format("S%s,%s", 
-							e.getKey().toString(), 
-							StringUtil.escapeCsv(e.getValue())));
-				}
-				
-				this.tempFileWriter.flush();
-			} catch (Exception e) {
-				LOGGER.error("Failed to perform autosave!");
-				e.printStackTrace();
-			} finally {
-				this.autosaveOngoing = false;
-			}
-		}, "ChatLog Autosave Worker");
-		saveWorker.start();
-	}
-	
-	private void writeIndex(int size) {
+	private void writeIndex() {
 		try(PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))){
-			pw.println(String.format("%d,%s,%d,%d,%d,%s", 
+			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s", 
 					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
-					this.endTime, size, this.timeZone.getID()));
+					this.endTime, this.messageCount, this.timeZone.getID(), 
+					Version.LATEST.name()));
 		} catch (IOException e) {
 			LOGGER.error("Failed to write index!");
 			e.printStackTrace();
@@ -463,7 +168,6 @@ public final class Session {
 	
 	public static List<Summary> getSessionSummaries() {
 		List<Summary> list = new ArrayList<>();
-		//System.out.println(INDEX.getAbsolutePath());
 		if(!INDEX.exists()) {
 			try {
 				INDEX.createNewFile();
@@ -488,21 +192,6 @@ public final class Session {
 		}
 		
 		return list;
-	}
-
-	@Nullable
-	public static Session load(Summary s) {
-		if(checkAvailability(s.id)) {
-			// Not exist
-			return null;
-		} else {
-			try {
-				return new Session(id2File(s.id), s.saveName, s.startTime, s.endTime, s.timeZone);
-			} catch (MalformedJsonException e) {
-				e.printStackTrace();
-				return null;
-			}
-		}
 	}
 	
 	private static int allocateId() {
@@ -537,6 +226,13 @@ public final class Session {
 		}
 		
 		prop.put("nextId", Integer.toString(id + 1));
+		try (FileWriter fw = new FileWriter(optionFile)) {
+			prop.store(fw, "");
+		} catch (IOException e) {
+			LOGGER.error("Unable to save configurations.");
+			e.printStackTrace();
+		}
+		
 		return id;
 	}
 
@@ -556,15 +252,7 @@ public final class Session {
 	private static File id2File(int id) {
 		return new File(CHATLOG_FOLDER, String.format("log-%d.json", id));
 	}
-	
-	private static int file2Id(File f) {
-		try (Scanner s = new Scanner(f.getName()).skip("log-")) {
-			s.useDelimiter("\\.");
-			int id = Integer.parseInt(s.next());
-			return id;
-		}
-	}
-	
+
 	public static final class Line {
 		public final UUID sender;
 		public final Text message;
@@ -655,12 +343,13 @@ public final class Session {
 		public final long endTime;
 		public final int size;
 		public final TimeZone timeZone;
+		public final Version version;
 		
 		protected Summary(String idxLine) {
 			try(Scanner s = new Scanner(idxLine)){
 				s.useDelimiter(",");
 				this.id = Integer.parseInt(s.next());
-				this.saveName = StringUtil.unescapeCsv(s.next()).toString();
+				this.saveName = StringUtil.unescapeCsv(s.next()).toString();	// FIXME: Save name with commas
 				this.startTime = Long.parseLong(s.next());
 				this.endTime = Long.parseLong(s.next());
 				this.size = Integer.parseInt(s.next());
@@ -669,6 +358,21 @@ public final class Session {
 				} else {
 					this.timeZone = TimeZone.getDefault();
 				}
+				
+				if (s.hasNext()) {
+					this.version = Version.valueOf(s.next());
+				} else {
+					this.version = Version.EARLY_RELEASES;
+				}
+			}
+		}
+		
+		public final Session load() {
+			if(checkAvailability(this.id)) {
+				// Not exist
+				return null;
+			} else {
+				return this.version.load(this);
 			}
 		}
 	}
@@ -676,5 +380,245 @@ public final class Session {
 	@FunctionalInterface
 	private interface RunnableWithIOException {
 		void run() throws IOException;
+	}
+	
+	public static enum Version {
+		EARLY_RELEASES {
+			@Override
+			protected Session load(Summary summary) {
+				File file = id2File(summary.id);
+				List<Line.Proto> protos = null;
+				LinkedHashMap<UUID, String> uuidToName = null;
+				Int2ObjectMap<UUID> uuids = new Int2ObjectOpenHashMap<>();
+				try (InputStreamReader reader = new InputStreamReader(
+						new GZIPInputStream(new FileInputStream(file)))) {
+					JsonReader jr = new Gson().newJsonReader(reader);
+					jr.beginObject();
+					while(jr.hasNext()) {
+						switch(jr.nextName()) {
+						case "messages":
+							protos = new ArrayList<>();
+							jr.beginArray();
+							List<Line.Proto> fuckLambda = protos = new ArrayList<>();
+							wrapTextSerialization(() -> {
+								while(jr.hasNext()) {
+									fuckLambda.add(Line.parse(jr));
+								}
+							});
+							jr.endArray();
+							break;
+						case "senders":
+							uuidToName = new LinkedHashMap<>();
+							jr.beginArray();
+							while(jr.hasNext()) {
+								jr.beginObject();
+								Integer id = null;
+								String name = null;
+								Long uuid_m = null;
+								Long uuid_l = null;
+								while(jr.hasNext()) {
+									switch(jr.nextName()) {
+									case "id":
+										id = jr.nextInt();
+										break;
+									case "name":
+										name = jr.nextString();
+										break;
+									case "uuid_m":
+										uuid_m = jr.nextLong();
+										break;
+									case "uuid_l":
+										uuid_l = jr.nextLong();
+										break;
+									default:
+										jr.skipValue();
+										break;
+									}
+								}
+								
+								if(id == null || name == null || uuid_m == null || uuid_l == null) {
+									throw new MalformedJsonException("Incomplete sender info");
+								}
+								
+								UUID uuid = new UUID(uuid_m, uuid_l);
+								uuidToName.put(uuid, name);
+								uuids.put(id.intValue(), uuid);
+								jr.endObject();
+							}
+							
+							jr.endArray();
+							break;
+						default:
+							jr.skipValue();
+							//throw new RuntimeException("Unrecognized name: " + name);
+						}
+					}
+					
+					jr.endObject();
+				} catch (IOException e1) {
+					LOGGER.error("Failed to load chat logs!");
+					e1.printStackTrace();
+					if (Options.allowCorruptedChatlogs) {
+						if (protos == null) {
+							protos = new ArrayList<>();
+						}
+						
+						if (uuidToName == null) {
+							uuidToName = new LinkedHashMap<>();
+						}
+					} else {
+						throw new RuntimeException("Failed to load chat logs!", e1);
+					}
+				}
+				
+				if (uuidToName == null || protos == null) {
+					LOGGER.error("Incomplete chat log");
+					return null;
+				}
+				
+				ArrayDeque<Line> currentChatLogs = protos.stream()
+						.map((p) -> p.toLine(uuids))
+						.<ArrayDeque<Line>>collect(ArrayDeque<Line>::new, ArrayDeque::add, (r1, r2) -> {});
+				return new Session(currentChatLogs, uuidToName, summary.saveName, summary.id, 
+						summary.startTime, summary.endTime, summary.timeZone);
+			}
+
+			@Override
+			protected void serialize(Session session, int id) {
+				throw new UnsupportedOperationException("This format is outdated!");
+			}
+		}, 
+		V_20240826 {
+			@Override
+			protected Session load(Summary summary) {
+				File file = id2File(summary.id);
+				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
+						new BufferedInputStream(new FileInputStream(file)))))) {
+					long endTime = file.lastModified();
+					s.useDelimiter(",");
+					int id = Integer.parseInt(s.next());
+					String saveName = StringUtil.unescapeCsv(s.next()).toString();
+					long startTime = Long.parseLong(s.next());
+					TimeZone timeZone = TimeZone.getTimeZone(s.next());
+					s.nextLine();
+					ArrayDeque<Line> lines = new ArrayDeque<>();
+					LinkedHashMap<UUID, String> namesByUuid = new LinkedHashMap<>();
+					while(s.hasNextLine()) {
+						try {
+							String l = s.nextLine();
+							switch(l.charAt(0)) {
+							case 'M':
+								wrapTextSerialization(() -> {
+									try {
+										lines.add(Line.parseFull(l.substring(1)));
+									} catch (Exception e) {
+										LOGGER.error("Failed to parse line: {}", l);
+										e.printStackTrace();
+										
+									}
+								});
+								break;
+							case 'S':
+								try(Scanner scannerForLine = new Scanner(l.substring(1))) {
+									scannerForLine.useDelimiter(",");
+									namesByUuid.put(UUID.fromString(scannerForLine.next()), 
+											StringUtil.unescapeCsv(scannerForLine.next()).toString());
+								}
+
+								break;
+							}
+						} catch (EOFException | MalformedJsonException e) {
+							e.printStackTrace();
+							if (!Options.allowCorruptedChatlogs) {
+								break;
+							} else {
+								return null;
+							}
+						}
+					}
+
+					return new Session(lines, namesByUuid, saveName, id, startTime, endTime, timeZone);
+				} catch (Exception e) {
+					LOGGER.error("Failed to load chatlog!");
+					e.printStackTrace();
+					return null;
+				}
+			}
+
+			@Override
+			protected void serialize(Session session, int id) {
+				// Chat logs are saved while playing, so no extra processes are needed.
+			}
+		};
+		
+		public static final Version LATEST = V_20240826;
+		
+		protected abstract Session load(Summary summary);
+		protected abstract void serialize(Session session, int id);
+	}
+	
+	private final class AutosaveWorker extends Thread {
+		private PrintWriter chatlogWriter;
+		private int lastAutoSaveSendererCount = 0;
+		private int finalLoops = 2;
+		private final File chatlogFile = id2File(Session.this.id);
+
+		protected AutosaveWorker() {
+			super("ChatLog Autosave Worker");
+			PrintWriter temp;
+			try {
+				OutputStreamWriter backend = new OutputStreamWriter(new GZIPOutputStream(
+						new BufferedOutputStream(new FileOutputStream(this.chatlogFile)), true));
+				temp = new PrintWriter(backend);
+				temp.println(String.format("%d,%s,%d,%s", 
+						Session.this.id, StringUtil.escapeCsv(Session.this.saveName), 
+						Session.this.startTime, Session.this.timeZone.getID()));
+			} catch (IOException e) {
+				LOGGER.error("Failed to create temp file for chat logs!");
+				e.printStackTrace();
+				throw new RuntimeException();
+			}
+			
+			this.chatlogWriter = temp;
+		}
+		
+		@Override
+		public void run() {
+			while (!Session.this.finalSaving || this.finalLoops-- > 0) {
+				try {
+					wrapTextSerialization(() -> {
+						while (!Session.this.cachedChatLogs.isEmpty()) {
+							Line l = Session.this.cachedChatLogs.pollFirst();
+							this.chatlogWriter.println("M" + l.serializeWithoutIndex());
+						}
+					});
+					List<Map.Entry<UUID, String>> senders = new ArrayList<>(Session.this.uuidToName.entrySet());
+					List<Map.Entry<UUID, String>> sendersToSave = senders
+							.subList(this.lastAutoSaveSendererCount, senders.size());
+					this.lastAutoSaveSendererCount = senders.size();
+					for(Map.Entry<UUID, String> e : sendersToSave) {
+						this.chatlogWriter.println(String.format("S%s,%s", 
+								e.getKey().toString(), 
+								StringUtil.escapeCsv(e.getValue())));
+					}
+					
+					this.chatlogWriter.flush();
+					Thread.sleep(Options.realtimeChatlogSaving ? 0 : Options.autoSaveIntervalInMs);
+				} catch (Exception e) {
+					LOGGER.error("Failed to perform autosave!");
+					e.printStackTrace();
+				}
+			}
+			
+			this.chatlogWriter.close();
+			if (Session.this.messageCount == 0) {
+				this.chatlogFile.delete();
+				return;
+			}
+			
+			Session.this.writeIndex();
+			Version.LATEST.serialize(Session.this, Session.this.id);
+			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
+		}
 	}
 }

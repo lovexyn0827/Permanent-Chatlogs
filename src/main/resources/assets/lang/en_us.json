@@ -13,6 +13,8 @@
 		"gui.unknowntime" : "UNKNOWN TIME", 
 		"gui.search" : "Search", 
 		"gui.settings" : "Settings", 
-		"gui.sizeandtime" : "%d:%d:%d (%d Messages)"
+		"gui.sizeandtime" : "%d:%d:%d (%d Messages)", 
+		"gui.sload.failure": "Unable to load chat log!", 
+		"gui.sload.failure.desc": "Probably it has been damaged or deleted."
 	}
 }

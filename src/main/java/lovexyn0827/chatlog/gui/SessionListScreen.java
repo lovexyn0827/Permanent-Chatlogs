@@ -15,6 +15,9 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.toast.SystemToast;
+import net.minecraft.client.toast.Toast;
+import net.minecraft.client.toast.ToastManager;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 
@@ -128,7 +131,15 @@ public final class SessionListScreen extends Screen {
 			@Override
 			public boolean mouseClicked(double mouseX, double mouseY, int button) {
 				try {
-					SessionListScreen.this.client.setScreen(new ChatLogScreen(this.summary));
+					Session session = this.summary.load();
+					if (session != null) {
+						SessionListScreen.this.client.setScreen(new ChatLogScreen(this.summary, session));
+					} else {
+						SystemToast warning = new SystemToast(new SystemToast.Type(), 
+								I18N.translateAsText("gui.sload.failure"), 
+								I18N.translateAsText("gui.sload.failure.desc"));
+						MinecraftClient.getInstance().getToastManager().add(warning);
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
