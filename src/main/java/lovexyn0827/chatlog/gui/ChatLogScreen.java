@@ -68,9 +68,13 @@ public final class ChatLogScreen extends Screen {
 			super(client, ChatLogScreen.this.client.getWindow().getScaledWidth(), 
 					ChatLogScreen.this.height - 40, 20, client.textRenderer.fontHeight + 1);
 			session.getAllMessages().forEach((l) -> {
+				boolean[] firstLine = new boolean[] { true };
 				ChatMessages.breakRenderedChatMessageLines(l.message, 
 						ChatLogScreen.this.client.getWindow().getScaledWidth() - 14, 
-						ChatLogScreen.this.textRenderer).forEach((t) -> this.addEntry(new Entry(t, l.time)));
+						ChatLogScreen.this.textRenderer).forEach((t) -> {
+							this.addEntry(new Entry(l, t, l.time, firstLine[0]));
+							firstLine[0] = false;
+						});
 			});
 			this.allEntries = ImmutableList.copyOf(this.children());
 		}
@@ -101,13 +105,18 @@ public final class ChatLogScreen extends Screen {
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {
+			private final Session.Line owner;
 			private final OrderedText line;
 			private final String lineStr;
 			private final long time;
+			private final boolean firstLine;
 			
-			protected Entry(OrderedText t, long time) {
+			
+			protected Entry(Session.Line owner, OrderedText t, long time, boolean firstLine) {
+				this.owner = owner;
 				this.line = t;
 				this.time = time;
+				this.firstLine = firstLine;
 				StringBuilder sb = new StringBuilder();
 				t.accept((idx, style, cp) -> {
 					sb.append((char) cp);
@@ -121,7 +130,7 @@ public final class ChatLogScreen extends Screen {
 					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
 				ctx.drawTextWithShadow(tr, this.line, x + 4, y, 0xFFFFFFFF);
-				ctx.fill(x + 1, y, x + 3, y + 9, 0xFF31F38B);
+				ctx.fill(x + 1, y + (this.firstLine ? 2 : 0), x + 3, y + 10, this.owner.getMarkColor());
 				if(hovering) {
 					if(mouseX - x < 4) {
 						String time = (this.time == 0L) ? I18N.translate("gui.unknowntime") : 

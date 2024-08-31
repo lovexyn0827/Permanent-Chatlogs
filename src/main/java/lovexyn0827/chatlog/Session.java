@@ -253,7 +253,7 @@ public final class Session {
 		return new File(CHATLOG_FOLDER, String.format("log-%d.json", id));
 	}
 
-	public static final class Line {
+	public static class Line {
 		public final UUID sender;
 		public final Text message;
 		public final long time;
@@ -317,6 +317,10 @@ public final class Session {
 			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
 			line.addProperty("time", this.time);
 			return line;
+		}
+		
+		public int getMarkColor() {
+			return 0xFF31F38B;
 		}
 		
 		protected final static class Proto {
@@ -619,6 +623,20 @@ public final class Session {
 			Session.this.writeIndex();
 			Version.LATEST.serialize(Session.this, Session.this.id);
 			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
+		}
+	}
+	
+	public static final class Event extends Line {
+		private final int markColor;
+		
+		protected Event(Text title, long time, int markColor) {
+			super(Util.NIL_UUID, title, time);
+			this.markColor = markColor;
+		}
+		
+		@Override
+		public int getMarkColor() {
+			return this.markColor;
 		}
 	}
 }
