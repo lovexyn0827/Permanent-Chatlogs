@@ -14,7 +14,8 @@
 		"LanguageManagerMixin", 
 		"ChaHudMixin_overrideMaxMessages", 
 		"ClickEventActionMixin", 
-		"HoverEventActionMixin"
+		"HoverEventActionMixin", 
+		"KeyboardMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

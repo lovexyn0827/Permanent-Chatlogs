@@ -15,6 +15,9 @@
 		"gui.settings" : "Settings", 
 		"gui.sizeandtime" : "%d:%d:%d (%d Messages)", 
 		"gui.sload.failure": "Unable to load chat log!", 
-		"gui.sload.failure.desc": "Probably it has been damaged or deleted."
+		"gui.sload.failure.desc": "Probably it has been damaged or deleted.", 
+		"gui.marker.title": "New Event Marker", 
+		"gui.marker.name": "Name", 
+		"gui.marker.color": "Marker Color"
 	}
 }

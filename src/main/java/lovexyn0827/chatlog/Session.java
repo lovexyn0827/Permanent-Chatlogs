@@ -34,19 +34,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import com.google.gson.stream.MalformedJsonException;
 
 import io.netty.util.internal.StringUtil;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lovexyn0827.chatlog.config.Options;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
-
 
 public final class Session {
 	private static final Logger LOGGER = LogManager.getLogger("ChatlogSession");
@@ -252,6 +249,11 @@ public final class Session {
 	private static File id2File(int id) {
 		return new File(CHATLOG_FOLDER, String.format("log-%d.json", id));
 	}
+	
+	public void addEvent(Event e) {
+		this.cachedChatLogs.add(e);
+		this.messageCount++;
+	}
 
 	public static class Line {
 		public final UUID sender;
@@ -262,15 +264,6 @@ public final class Session {
 			this.sender = sender;
 			this.message = message;
 			this.time = time;
-		}
-
-		@SuppressWarnings("deprecation")
-		public void serialize(JsonWriter jw, Object2IntMap<UUID> uuids) throws IOException {
-			jw.beginObject();
-			jw.name("sender").value(uuids.computeIntIfAbsent(this.sender, (k) -> uuids.size()));
-			jw.name("msgJson").value(Text.Serialization.toJsonString(this.message));
-			jw.name("time").value(this.time);
-			jw.endObject();
 		}
 
 		public static Proto parse(JsonReader jr) throws IOException {
@@ -311,7 +304,7 @@ public final class Session {
 					jo.get("time").getAsLong());
 		}
 
-		public JsonObject serializeWithoutIndex() {
+		public JsonObject toJson() {
 			JsonObject line = new JsonObject();
 			line.addProperty("sender", this.sender.toString());
 			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
@@ -337,6 +330,37 @@ public final class Session {
 			protected Line toLine(Int2ObjectMap<UUID> uuids) {
 				return new Line(uuids.get(this.senderId), this.message, this.time);
 			}
+		}
+	}
+	
+	public static final class Event extends Line {
+		private final int markColor;
+		
+		public Event(Text title, long time, int markColor) {
+			super(Util.NIL_UUID, title, time);
+			this.markColor = markColor;
+		}
+		
+		@Override
+		public int getMarkColor() {
+			return 0xFF000000 | this.markColor;
+		}
+
+		public static Line parseEvent(String json) {
+			@SuppressWarnings("deprecation")
+			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
+			return new Event(Text.Serialization.fromJson(jo.get("msgJson").getAsString()), 
+					jo.get("time").getAsLong(), 
+					jo.get("color").getAsInt());
+		}
+		
+		@Override
+		public JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
+			json.addProperty("time", this.time);
+			json.addProperty("color", this.markColor);
+			return json;
 		}
 	}
 	
@@ -530,6 +554,11 @@ public final class Session {
 								}
 
 								break;
+							case 'E':
+								wrapTextSerialization(() -> {
+									lines.add(Event.parseEvent(l.substring(1)));
+								});
+								break;
 							}
 						} catch (EOFException | MalformedJsonException e) {
 							e.printStackTrace();
@@ -593,7 +622,7 @@ public final class Session {
 					wrapTextSerialization(() -> {
 						while (!Session.this.cachedChatLogs.isEmpty()) {
 							Line l = Session.this.cachedChatLogs.pollFirst();
-							this.chatlogWriter.println("M" + l.serializeWithoutIndex());
+							this.chatlogWriter.println((l instanceof Event ? "E" : "M") + l.toJson());
 						}
 					});
 					List<Map.Entry<UUID, String>> senders = new ArrayList<>(Session.this.uuidToName.entrySet());
@@ -623,20 +652,6 @@ public final class Session {
 			Session.this.writeIndex();
 			Version.LATEST.serialize(Session.this, Session.this.id);
 			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
-		}
-	}
-	
-	public static final class Event extends Line {
-		private final int markColor;
-		
-		protected Event(Text title, long time, int markColor) {
-			super(Util.NIL_UUID, title, time);
-			this.markColor = markColor;
-		}
-		
-		@Override
-		public int getMarkColor() {
-			return this.markColor;
 		}
 	}
 }
