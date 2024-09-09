@@ -1,7 +1,6 @@
 package lovexyn0827.chatlog.gui;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -12,11 +11,14 @@ import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 
 public final class SessionListScreen extends Screen {
@@ -39,11 +41,44 @@ public final class SessionListScreen extends Screen {
 		this.addDrawableChild(this.displayedSessions);
 		ButtonWidget prevBtn = ButtonWidget.builder(I18N.translateAsText("gui.prev"), 
 						(btn) -> this.displayedSessions.turnPage(false))
-				.dimensions(this.width / 2 - 128, this.height - 23, 120, 20)
+				.dimensions(this.width / 2 - 128, this.height - 23, 124, 20)
 				.build();
 		ButtonWidget nextBtn = ButtonWidget.builder(I18N.translateAsText("gui.next"), 
 						(btn) -> this.displayedSessions.turnPage(true))
-				.dimensions(this.width / 2 + 8, this.height - 23, 120, 20)
+				.dimensions(this.width / 2 + 4, this.height - 23, 124, 20)
+				.build();
+		ButtonWidget openBtn = ButtonWidget.builder(I18N.translateAsText("gui.open"), 
+				(btn) -> {
+					SessionList.SessionEntry entry = this.displayedSessions.getFocused();
+					if (entry != null ) {
+						entry.loadSession();
+					}
+				})
+				.dimensions(this.width / 2 - 128, this.height - 46, 80, 20)
+				.build();
+		ButtonWidget exportBtn = ButtonWidget.builder(I18N.translateAsText("gui.export"), 
+				(btn) -> {
+					SessionList.SessionEntry entry = this.displayedSessions.getFocused();
+					if (entry != null ) {
+						// TODO this.client.setScreen(new ExportSessionScreen(entry.summary));
+					}
+				})
+				.dimensions(this.width / 2 - 40, this.height - 46, 80, 20)
+				.build();
+		ButtonWidget deleteBtn = ButtonWidget.builder(I18N.translateAsText("gui.del"), 
+				(btn) -> {
+					SessionList.SessionEntry entry = this.displayedSessions.getFocused();
+					if (entry != null ) {
+						this.client.setScreen(new ConfirmScreen((confirmed) -> {
+							if (confirmed) {
+								// TODO Session.delete(entry.summary.id);
+							}
+							
+							this.client.setScreen(this);
+						}, I18N.translateAsText("gui.del.title"), I18N.translateAsText("gui.del.desc")));
+					}
+				})
+				.dimensions(this.width / 2 + 48, this.height - 46, 80, 20)
 				.build();
 		ButtonWidget filterBtn = ButtonWidget.builder(I18N.translateAsText("gui.filter"), 
 						(btn) -> this.client.setScreen(new FilterSessionScreen()))
@@ -55,6 +90,9 @@ public final class SessionListScreen extends Screen {
 				.build();
 		this.addDrawableChild(prevBtn);
 		this.addDrawableChild(nextBtn);
+		this.addDrawableChild(openBtn);
+		this.addDrawableChild(exportBtn);
+		this.addDrawableChild(deleteBtn);
 		this.addDrawableChild(filterBtn);
 		this.addDrawableChild(settingBtn);
 	}
@@ -76,7 +114,7 @@ public final class SessionListScreen extends Screen {
 		private int currentPage = 0;
 		
 		public SessionList(MinecraftClient mc) {
-			super(mc, SessionListScreen.this.width, SessionListScreen.this.height - 68, 34, 32);
+			super(mc, SessionListScreen.this.width, SessionListScreen.this.height - 84, 30, 32);
 			this.toPage(0);
 		}
 		
@@ -85,6 +123,7 @@ public final class SessionListScreen extends Screen {
 			this.visibleSessions = this.sessionsInPage(i);
 			this.clearEntries();
 			this.visibleSessions.stream().map(SessionEntry::new).forEach(this::addEntry);
+			this.setFocused(null);
 		}
 
 		private List<Summary> sessionsInPage(int i) {
@@ -106,10 +145,12 @@ public final class SessionListScreen extends Screen {
 				this.summary = info;
 				this.saveName = Text.literal(info.saveName);
 				this.start = Text.literal(Instant.ofEpochMilli(info.startTime)
-						.atZone(this.summary.timeZone.toZoneId()).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+						.atZone(this.summary.timeZone.toZoneId()).format(WorldListWidget.DATE_FORMAT))
+						.formatted(Formatting.GRAY);
 				long delta = (long) Math.floor((info.endTime - info.startTime) / 1000);
 				this.sizeAndTimeLength = Text.literal(String.format(I18N.translate("gui.sizeandtime"), 
-						(int) Math.floor(delta / 3600), (int) Math.floor((delta % 3600) / 60), delta % 60, info.size));
+						(int) Math.floor(delta / 3600), (int) Math.floor((delta % 3600) / 60), delta % 60, info.size))
+						.formatted(Formatting.GRAY);
 			}
 
 			@Override
@@ -128,6 +169,11 @@ public final class SessionListScreen extends Screen {
 			
 			@Override
 			public boolean mouseClicked(double mouseX, double mouseY, int button) {
+				SessionList.this.setFocused(this);
+				return true;
+			}
+			
+			public boolean loadSession() {
 				try {
 					Session session = this.summary.load();
 					if (session != null) {

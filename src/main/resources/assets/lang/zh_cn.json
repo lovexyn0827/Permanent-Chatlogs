@@ -18,6 +18,11 @@
 		"gui.sload.failure.desc": "聊天记录可能已被损坏或删除", 
 		"gui.marker.title": "新建事件标记", 
 		"gui.marker.name": "名称", 
-		"gui.marker.color": "标记颜色"
+		"gui.marker.color": "标记颜色", 
+		"gui.open": "打开", 
+		"gui.export": "导出", 
+		"gui.del": "删除", 
+		"gui.del.title": "删除会话", 
+		"gui.del.desc": "选中的会话将会永久丢失！"
 	}
 }
