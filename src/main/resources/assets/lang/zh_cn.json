@@ -23,6 +23,11 @@
 		"gui.export": "导出", 
 		"gui.del": "删除", 
 		"gui.del.title": "删除会话", 
-		"gui.del.desc": "选中的会话将会永久丢失！"
+		"gui.del.desc": "选中的会话将会永久丢失！", 
+		
+		"opt.visibleLineCount.desc": "覆写聊天框中消息历史的最大可见行数。", 
+		"opt.autoSaveIntervalInMs.desc": "每次自动保存之间的间隔。在realtimeChatlogSaving启用时失效。", 
+		"opt.realtimeChatlogSaving.desc": "每当有机会时均自动保存聊天记录。因为聊天记录是在单独的线程上保存的，所以该选项一般不会造成明显的性能影响，同时，考虑到一些已知问题，不推荐禁用该选项。", 
+		"opt.allowCorruptedChatlogs.desc": "允许加载因为游戏崩溃等原因而损坏的聊天记录。"
 	}
 }
