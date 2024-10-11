@@ -51,6 +51,7 @@ class Language {
 	 */
 	public String translate(String key) {
 		if(!this.translations.containsKey(key)) {
+			I18N.LOGGER.warn("Unrecognized translation key: {}", key);
 			return key; 
 		}
 		

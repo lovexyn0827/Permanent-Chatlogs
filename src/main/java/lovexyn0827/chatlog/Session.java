@@ -151,16 +151,15 @@ public final class Session {
 		this.finalSaving = true;
 	}
 	
-	private void writeIndex() {
-		try(PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))){
-			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s", 
-					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
-					this.endTime, this.messageCount, this.timeZone.getID(), 
-					Version.LATEST.name()));
-		} catch (IOException e) {
-			LOGGER.error("Failed to write index!");
-			e.printStackTrace();
-		}
+	/**
+	 * Only guaranteed to be accurate when invoked on terminated or deserialized Sessions.
+	 */
+	private Summary toSummary() {
+		return new Summary(this);
+	}
+	
+	private boolean writeSummary() {
+		return this.toSummary().write();
 	}
 	
 	public static List<Summary> getSessionSummaries() {
@@ -369,9 +368,37 @@ public final class Session {
 		public final String saveName;
 		public final long startTime;
 		public final long endTime;
-		public final int size;
+		public final long size;
 		public final TimeZone timeZone;
 		public final Version version;
+		
+		private Summary(Session s) {
+			this.id = s.id;
+			this.saveName = s.saveName;
+			this.startTime = s.startTime;
+			this.endTime = s.endTime;
+			this.size = s.messageCount;
+			this.timeZone = s.timeZone;
+			this.version = s.version;
+		}
+		
+		protected boolean write() {
+			try(PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))){
+				this.write(pw);
+				return true;
+			} catch (IOException e) {
+				LOGGER.error("Failed to write index!");
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		protected void write(PrintWriter pw) throws IOException {
+			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s", 
+					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
+					this.endTime, this.size, this.timeZone.getID(), 
+					Version.LATEST.name()));
+		}
 		
 		protected Summary(String idxLine) {
 			try(Scanner s = new Scanner(idxLine)){
@@ -402,6 +429,12 @@ public final class Session {
 			} else {
 				return this.version.load(this);
 			}
+		}
+		
+		public final String getFormattedStartTime() {
+			return Instant.ofEpochMilli(this.startTime)
+					.atZone(this.timeZone.toZoneId())
+					.format(WorldListWidget.DATE_FORMAT);
 		}
 	}
 	
@@ -508,7 +541,7 @@ public final class Session {
 						.map((p) -> p.toLine(uuids))
 						.<ArrayDeque<Line>>collect(ArrayDeque<Line>::new, ArrayDeque::add, (r1, r2) -> {});
 				return new Session(currentChatLogs, uuidToName, summary.saveName, summary.id, 
-						summary.startTime, summary.endTime, summary.timeZone);
+						summary.startTime, summary.endTime, summary.timeZone, Version.EARLY_RELEASES);
 			}
 
 			@Override
@@ -570,7 +603,8 @@ public final class Session {
 						}
 					}
 
-					return new Session(lines, namesByUuid, saveName, id, startTime, endTime, timeZone);
+					return new Session(lines, namesByUuid, saveName, id, startTime, endTime, timeZone, 
+							Version.V_20240826);
 				} catch (Exception e) {
 					LOGGER.error("Failed to load chatlog!");
 					e.printStackTrace();
@@ -649,7 +683,7 @@ public final class Session {
 				return;
 			}
 			
-			Session.this.writeIndex();
+			Session.this.writeSummary();
 			Version.LATEST.serialize(Session.this, Session.this.id);
 			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
 		}

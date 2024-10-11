@@ -60,7 +60,7 @@ public final class SessionListScreen extends Screen {
 				(btn) -> {
 					SessionList.SessionEntry entry = this.displayedSessions.getFocused();
 					if (entry != null ) {
-						// TODO this.client.setScreen(new ExportSessionScreen(entry.summary));
+						this.client.setScreen(new ExportSessionScreen(entry.summary));
 					}
 				})
 				.dimensions(this.width / 2 - 40, this.height - 46, 80, 20)

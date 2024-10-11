@@ -1,0 +1,29 @@
+body {
+	background: #1F1F1F;
+	color: #FFFFFF;
+	font-family: "Mojangles";
+	font-size: 133.333333%;
+}
+
+.message {
+	display: flex;
+}
+
+.msg_marker {
+	min-width: 10px;
+	max-width: 10px;
+	margin: 1px;
+}
+
+.tooltip {
+	max-width: 66.7%;
+	border-radius: 8px;
+	border: 8px soild #00FFFF;
+	background: #003F7F;
+	padding: 24px;
+	margin: 6px;
+	color: #FFFFFF;
+	position: absolute;
+	font-style: normal;
+	font-weight: normal;
+}
