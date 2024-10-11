@@ -1,6 +1,5 @@
 package lovexyn0827.chatlog.gui;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -13,10 +12,11 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.world.WorldListWidget;
+import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.toast.SystemToast;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
@@ -82,11 +82,15 @@ public final class SessionListScreen extends Screen {
 				.build();
 		ButtonWidget filterBtn = ButtonWidget.builder(I18N.translateAsText("gui.filter"), 
 						(btn) -> this.client.setScreen(new FilterSessionScreen()))
-				.dimensions(2, 2, 60, 20)
+				.dimensions(this.width / 2 - 128, 2, 80, 20)
 				.build();
 		ButtonWidget settingBtn = ButtonWidget.builder(I18N.translateAsText("gui.settings"), 
 						(btn) -> this.client.setScreen(new SettingScreen()))
-				.dimensions(65, 2, 60, 20)
+				.dimensions(this.width / 2 - 40, 2, 80, 20)
+				.build();
+		ButtonWidget exitBtn = ButtonWidget.builder(ScreenTexts.BACK, 
+						(btn) -> this.client.setScreen(new TitleScreen()))
+				.dimensions(this.width / 2 + 48, 2, 80, 20)
 				.build();
 		this.addDrawableChild(prevBtn);
 		this.addDrawableChild(nextBtn);
@@ -95,6 +99,7 @@ public final class SessionListScreen extends Screen {
 		this.addDrawableChild(deleteBtn);
 		this.addDrawableChild(filterBtn);
 		this.addDrawableChild(settingBtn);
+		this.addDrawableChild(exitBtn);
 	}
 	
 	@Override
@@ -144,8 +149,7 @@ public final class SessionListScreen extends Screen {
 			public SessionEntry(Session.Summary info) {
 				this.summary = info;
 				this.saveName = Text.literal(info.saveName);
-				this.start = Text.literal(Instant.ofEpochMilli(info.startTime)
-						.atZone(this.summary.timeZone.toZoneId()).format(WorldListWidget.DATE_FORMAT))
+				this.start = Text.literal(info.getFormattedStartTime())
 						.formatted(Formatting.GRAY);
 				long delta = (long) Math.floor((info.endTime - info.startTime) / 1000);
 				this.sizeAndTimeLength = Text.literal(String.format(I18N.translate("gui.sizeandtime"), 
