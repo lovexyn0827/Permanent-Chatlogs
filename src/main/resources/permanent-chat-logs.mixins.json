@@ -15,7 +15,8 @@
 		"ChaHudMixin_overrideMaxMessages", 
 		"ClickEventActionMixin", 
 		"HoverEventActionMixin", 
-		"KeyboardMixin"
+		"KeyboardMixin", 
+		"TextFieldWidgetAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1
