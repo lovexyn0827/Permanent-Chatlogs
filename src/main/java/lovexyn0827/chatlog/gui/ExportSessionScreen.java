@@ -55,7 +55,12 @@ public class ExportSessionScreen extends Screen {
 		this.addDrawableChild(this.fileName);
 		this.addDrawableChild(this.format);
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, (btn) -> this.export())
-				.dimensions(width / 2 - 40, (int) (height * 0.25F) + 50, 80, 20)
+				.dimensions((int) (width * 0.3F), (int) (height * 0.25F) + 50, 
+						(int) (width * 0.19F), 20)
+				.build());
+		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (btn) -> this.close())
+				.dimensions((int) (width * 0.51F), (int) (height * 0.25F) + 50, 
+						(int) (width * 0.19F), 20)
 				.build());
 	}
 
@@ -92,5 +97,10 @@ public class ExportSessionScreen extends Screen {
 		}
 		
 		this.close();
+	}
+	
+	@Override
+	public void close() {
+		this.client.setScreen(new SessionListScreen());
 	}
 }

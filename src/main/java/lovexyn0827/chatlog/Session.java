@@ -19,7 +19,9 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -117,7 +119,6 @@ public final class Session {
 		this.version = Version.LATEST;
 	}
 	
-	// Restore unsaved?
 	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
 			long startTime, long endTime, TimeZone timeZone, Version ver) {
 		this.cachedChatLogs = chatLogs;
@@ -142,7 +143,8 @@ public final class Session {
 
 	public void onMessage(UUID sender, Text msg) {
 		// TODO Limit memory usage
-		this.cachedChatLogs.addLast(new Line(sender, msg, Util.getEpochTimeMs()));
+		long timestamp = Util.getEpochTimeMs();
+		this.cachedChatLogs.addLast(new Line(sender, msg, timestamp));
 		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
 			// Naive solution?
 			String string = TextVisitFactory.removeFormattingCodes(msg);
@@ -151,6 +153,7 @@ public final class Session {
 		});
 		this.shouldSaveOnDisconnection = true;
 		this.messageCount++;
+		this.endTime = timestamp;
 	}
 	
 	public Deque<Line> getAllMessages() {
@@ -313,6 +316,78 @@ public final class Session {
 		}
 		
 		return deleted.size();
+	}
+	
+	/**
+	 * The returned list should be considered immutable.
+	 */
+	public List<Session> split(List<Line> delimiters) {
+		if (delimiters.isEmpty()) {
+			return List.of(this);
+		}
+		
+		// Ensure that the remaining lines is included
+		delimiters = new ArrayList<>(delimiters);
+		delimiters.add(null);
+		// XXX Discard original session v.s. 3x memory load
+		List<Line> remaining = new LinkedList<>(this.cachedChatLogs);
+		List<Session> result = new ArrayList<>();
+		Iterator<Line> itr = delimiters.iterator();
+		Line nextBorder;
+		while (itr.hasNext()) {
+			nextBorder = itr.next();
+			ArrayDeque<Line> seg = new ArrayDeque<>();
+			while (!remaining.isEmpty() && remaining.get(0) != nextBorder) {
+				seg.add(remaining.remove(0));
+			}
+			
+			if (seg.isEmpty()) {
+				continue;
+			}
+			
+			Session session = new Session(seg, this.uuidToName, this.saveName, allocateId(), 
+					seg.getFirst().time, seg.getLast().time, this.timeZone, this.version);
+			session.messageCount = seg.size();
+			result.add(session);
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * The returned list should be considered immutable.
+	 */
+	public Session clip(Line start, Line end) {
+		if (start == null && end == null) {
+			return this;
+		}
+		
+		if (start == null) {
+			return this.split(List.of(end)).get(0);
+		}
+		
+
+		if (end == null) {
+			return this.split(List.of(start)).get(1);
+		}
+		
+		return this.split(List.of(start, end)).get(1);
+	}
+	
+	
+	/**
+	 * Save a manually constructed {@code Session}, usually created by {@link split(List)}. Shouldn't be invoked
+	 * on {@code Session}s created while playing.
+	 */
+	public void save() {
+		this.end();
+		try {
+			AutosaveWorker saver = new AutosaveWorker(false);
+			saver.start();
+			saver.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static class Line {
@@ -617,7 +692,7 @@ public final class Session {
 				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
 						new BufferedInputStream(new FileInputStream(file)))))) {
 					long endTime = file.lastModified();
-					s.useDelimiter(",");
+					s.useDelimiter("[,\n]");
 					int id = Integer.parseInt(s.next());
 					String saveName = StringUtil.unescapeCsv(s.next()).toString();
 					long startTime = Long.parseLong(s.next());
@@ -690,8 +765,9 @@ public final class Session {
 		private int lastAutoSaveSendererCount = 0;
 		private int finalLoops = 2;
 		private final File chatlogFile = id2File(Session.this.id);
+		private final boolean updatesEndtimeOnClosing;
 
-		protected AutosaveWorker() {
+		protected AutosaveWorker(boolean updatesEndtimeOnClosing) {
 			super("ChatLog Autosave Worker");
 			PrintWriter temp;
 			try {
@@ -708,6 +784,11 @@ public final class Session {
 			}
 			
 			this.chatlogWriter = temp;
+			this.updatesEndtimeOnClosing = updatesEndtimeOnClosing;
+		}
+		
+		public AutosaveWorker() {
+			this(true);
 		}
 		
 		@Override
@@ -742,6 +823,10 @@ public final class Session {
 			if (Session.this.messageCount == 0) {
 				this.chatlogFile.delete();
 				return;
+			}
+			
+			if (updatesEndtimeOnClosing) {
+				Session.this.endTime = System.currentTimeMillis();
 			}
 			
 			Session.this.writeSummary();
