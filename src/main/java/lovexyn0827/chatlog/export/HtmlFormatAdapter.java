@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +24,8 @@ import lovexyn0827.chatlog.Session.Line;
 import lovexyn0827.chatlog.Session.Summary;
 import lovexyn0827.chatlog.i18n.I18N;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.metadata.ModMetadata;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Style;
@@ -65,6 +69,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 				e.printStackTrace();
 			}
 		});
+		this.writeFooter();
 		this.buildJavaScript();
 		this.html.writeEndElement();	// main_container
 		this.html.writeEndElement();	// body
@@ -146,7 +151,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 					depth++;
 				}
 				
-				if (style.isBold()) {
+				if (style.isItalic()) {
 					html.writeStartElement("i");
 					depth++;
 				}
@@ -192,7 +197,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 					depth++;
 				}
 				
-				if (style.isBold()) {
+				if (style.isItalic()) {
 					this.html.writeStartElement("i");
 					depth++;
 				}
@@ -235,7 +240,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 		this.html.writeEndElement();
 	}
 	
-	void writeHead() throws XMLStreamException, IOException {
+	private void writeHead() throws XMLStreamException, IOException {
 		this.html.writeStartElement("head");
 		this.html.writeStartElement("title");
 		this.html.writeCharacters(I18N.translate("export.this.html.title", 
@@ -246,6 +251,22 @@ final class HtmlFormatAdapter extends FormatAdapter {
 		this.writeStyleSheet();
 		this.html.writeEmptyElement("meta");
 		this.html.writeAttribute("charset", "utf-8");
+		this.html.writeEndElement();
+	}
+	
+	// To ensure that tooltips of the last line display well in most cases.
+	private void writeFooter() throws XMLStreamException, IOException {
+		this.writeStartingDiv("footer");
+		this.html.writeCharacters(I18N.translate("export.this.html.footer1", 
+				LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)));
+		this.html.writeStartElement("a");
+		this.html.writeAttribute("href", "https://modrinth.com/mod/permanent-chatlogs");
+		ModMetadata modMeta = FabricLoader.getInstance().getModContainer("permanent-chat-logs").get().getMetadata();
+		this.html.writeCharacters(modMeta.getName() + " " + modMeta.getVersion());
+		this.html.writeEndElement();
+		this.html.writeEmptyElement("br");
+		this.html.writeCharacters(I18N.translate("export.this.html.footer2", 
+				MinecraftClient.getInstance().getGameProfile().getName()));
 		this.html.writeEndElement();
 	}
 	

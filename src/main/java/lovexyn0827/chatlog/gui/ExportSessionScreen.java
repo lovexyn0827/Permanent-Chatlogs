@@ -33,6 +33,7 @@ public class ExportSessionScreen extends Screen {
 	});
 	private TextFieldWidget fileName;
 	private CyclingButtonWidget<FormatAdapter.Factory<?>> format;
+	private CyclingButtonWidget<Boolean> openAfterExport;
 	private final Summary sessionMeta;
 	
 	protected ExportSessionScreen(Summary summary) {
@@ -52,14 +53,19 @@ public class ExportSessionScreen extends Screen {
 				.initially(FormatAdapter.FORMAT_FACTORIES.get(0))
 				.build((int) (width * 0.3F), (int) (height * 0.25F) + 25, 
 						(int) (width * 0.4F), 20, I18N.translateAsText("gui.export.format"));
+		this.openAfterExport = CyclingButtonWidget.onOffBuilder(ScreenTexts.YES, ScreenTexts.NO)
+				.initially(false)
+				.build((int) (width * 0.3F), (int) (height * 0.25F) + 50, 
+						(int) (width * 0.4F), 20, I18N.translateAsText("gui.export.open"));
 		this.addDrawableChild(this.fileName);
 		this.addDrawableChild(this.format);
+		this.addDrawableChild(this.openAfterExport);
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, (btn) -> this.export())
-				.dimensions((int) (width * 0.3F), (int) (height * 0.25F) + 50, 
+				.dimensions((int) (width * 0.3F), (int) (height * 0.25F) + 75, 
 						(int) (width * 0.19F), 20)
 				.build());
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.CANCEL, (btn) -> this.close())
-				.dimensions((int) (width * 0.51F), (int) (height * 0.25F) + 50, 
+				.dimensions((int) (width * 0.51F), (int) (height * 0.25F) + 75, 
 						(int) (width * 0.19F), 20)
 				.build());
 	}
@@ -82,8 +88,8 @@ public class ExportSessionScreen extends Screen {
 			MinecraftClient.getInstance().getToastManager().add(warning);
 		}
 		
-		try (BufferedWriter w = new BufferedWriter(new FileWriter(
-				new File(EXPORT_FOLDER, this.fileName.getText() + "." + extension)))) {
+		File target = new File(EXPORT_FOLDER, this.fileName.getText() + "." + extension);
+		try (BufferedWriter w = new BufferedWriter(new FileWriter(target))) {
 			FormatAdapter fmt = this.format.getValue().create(
 					w, this.sessionMeta, session, new ExportConfig(false, true));
 			fmt.write();
@@ -94,6 +100,10 @@ public class ExportSessionScreen extends Screen {
 					I18N.translateAsText("gui.export.fail.desc"));
 			MinecraftClient.getInstance().getToastManager().add(warning);
 			return;
+		}
+		
+		if (this.openAfterExport.getValue()) {
+			Util.getOperatingSystem().open(target);
 		}
 		
 		this.close();

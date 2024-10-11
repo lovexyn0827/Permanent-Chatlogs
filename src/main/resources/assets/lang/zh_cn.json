@@ -31,6 +31,7 @@
 		"gui.del.desc": "选中的会话将会永久丢失！", 
 		"gui.export.name": "文件名", 
 		"gui.export.format": "导出为", 
+		"gui.export.open": "导出后打开", 
 		"gui.export.nodir": "未能创建导出文件夹！", 
 		"gui.export.nodir.desc": "", 
 		"gui.export.fail": "聊天记录导出失败！", 
@@ -53,6 +54,8 @@
 		"opt.realtimeChatlogSaving.desc": "每当有机会时均自动保存聊天记录。因为聊天记录是在单独的线程上保存的，所以该选项一般不会造成明显的性能影响，同时，考虑到一些已知问题，不推荐禁用该选项。", 
 		"opt.allowCorruptedChatlogs.desc": "允许加载因为游戏崩溃等原因而损坏的聊天记录。", 
 		
-		"export.this.html.title": "来自%s的聊天记录（%d条消息，录制于%s）"
+		"export.this.html.title": "来自 %s 的聊天记录（%d条消息，录制于%s）", 
+		"export.this.html.footer1": "导出于%s，使用", 
+		"export.this.html.footer2": "聊天记录由%s录制"
 	}
 }

@@ -27,3 +27,15 @@ body {
 	font-style: normal;
 	font-weight: normal;
 }
+
+.footer {
+	margin: 16px;
+	text-align: center;
+	font-size: 75%;
+	color: #FFFFFF;
+	font-style: italic;
+}
+
+a {
+	color: #FFC000
+}
