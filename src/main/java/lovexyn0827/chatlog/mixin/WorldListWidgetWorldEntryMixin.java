@@ -19,6 +19,6 @@ public abstract class WorldListWidgetWorldEntryMixin {
 	@Inject(method = "play", at = @At(value = "INVOKE", target = "net/minecraft/client/MinecraftClient"
 			+ ".createIntegratedServerLoader()Lnet/minecraft/server/integrated/IntegratedServerLoader;"))
 	private void onOpenWorld(CallbackInfo ci) {
-		Session.current = new Session(this.level.getDisplayName());
+		Session.current = new Session(this.level.getDisplayName(), false);
 	}
 }

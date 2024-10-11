@@ -184,13 +184,13 @@ public final class FilterSessionScreen extends Screen {
 		SINGLE_PLAYER(Text.translatable("menu.singleplayer")) {
 			@Override
 			public boolean test(Summary s) {
-				return false;
+				return !s.multiplayer;
 			}
 		}, 
 		MULTI_PLAYER(Text.translatable("menu.multiplayer")) {
 			@Override
 			public boolean test(Summary s) {
-				return false;
+				return s.multiplayer;
 			}
 		}, 
 		ALL(Text.translatable("gui.all")) {

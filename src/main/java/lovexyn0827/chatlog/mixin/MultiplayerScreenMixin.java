@@ -22,10 +22,10 @@ public class MultiplayerScreenMixin {
 		MultiplayerServerListWidget.Entry entry =  this.serverListWidget.getSelectedOrNull();
 		if(entry instanceof MultiplayerServerListWidget.ServerEntry) {
 			ServerInfo info = ((MultiplayerServerListWidget.ServerEntry) entry).getServer();
-			Session.current = new Session(info.name);
+			Session.current = new Session(info.name, true);
 		} else if(entry instanceof MultiplayerServerListWidget.LanServerEntry) {
 			LanServerInfo info = ((MultiplayerServerListWidget.LanServerEntry) entry).getLanServerEntry();
-			Session.current = new Session(info.getMotd());
+			Session.current = new Session(info.getMotd(), true);
 		}
 	}
 }
