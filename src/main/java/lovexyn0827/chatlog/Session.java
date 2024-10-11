@@ -13,6 +13,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -30,6 +33,7 @@ import java.util.zip.GZIPOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -39,8 +43,11 @@ import com.google.gson.stream.MalformedJsonException;
 import io.netty.util.internal.StringUtil;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
 import lovexyn0827.chatlog.config.Options;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
@@ -81,7 +88,7 @@ public final class Session {
 		}
 	});
 	private static final File INDEX = new File(CHATLOG_FOLDER, "index.ssv");
-    public static final int FORMAT_VERSION = 0;
+	private static final File INDEX_BACKUP = new File(CHATLOG_FOLDER, "index.bak");
 	public static Session current;
 	private Deque<Line> cachedChatLogs;
 	private final LinkedHashMap<UUID, String> uuidToName;
@@ -94,6 +101,7 @@ public final class Session {
 	private volatile boolean finalSaving = false;
 	private long messageCount = 0;
 	private final Thread autosaveWorker;
+	private final Version version;
 	
 	// Create a new instance to record a session
 	public Session(String saveName) {
@@ -106,11 +114,12 @@ public final class Session {
 		this.timeZone = TimeZone.getDefault();
 		this.autosaveWorker = new AutosaveWorker();
 		this.autosaveWorker.start();
+		this.version = Version.LATEST;
 	}
 	
 	// Restore unsaved?
 	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
-			long startTime, long endTime, TimeZone timeZone) {
+			long startTime, long endTime, TimeZone timeZone, Version ver) {
 		this.cachedChatLogs = chatLogs;
 		this.uuidToName = uuidToName;
 		this.saveName = saveName;
@@ -119,6 +128,7 @@ public final class Session {
 		this.endTime = endTime;
 		this.timeZone = timeZone;
 		this.autosaveWorker = null;
+		this.version = ver;
 	}
 	
 	private static void wrapTextSerialization(RunnableWithIOException task) throws IOException {
@@ -252,6 +262,57 @@ public final class Session {
 	public void addEvent(Event e) {
 		this.cachedChatLogs.add(e);
 		this.messageCount++;
+	}
+	
+	private static boolean backupIndex() {
+		try {
+			Files.copy(INDEX.toPath(), INDEX_BACKUP.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			return true;
+		} catch (IOException e) {
+			LOGGER.warn("Unable to backup chat log index!");
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	private static boolean restoreIndex() {
+		try {
+			Files.copy(INDEX_BACKUP.toPath(), INDEX.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			return true;
+		} catch (IOException e) {
+			LOGGER.warn("Unable to backup chat log index!");
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	/**
+	 * @return The count of sessions being successfully deleted
+	 */
+	public static int delete(IntSet ids) {
+		backupIndex();
+		List<Summary> summaries = getSessionSummaries();
+		IntSet deleted = new IntOpenHashSet();
+		for (int id : ids) {
+			if (id2File(id).delete()) {
+				deleted.add(id);
+			}
+		}
+
+		try (PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))) {
+			// This solution seems to be inefficient...
+			for (Summary s : summaries) {
+				// Avoid detached session summaries & sessions
+				if (!deleted.contains(s.id)) {
+					s.write(pw);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			restoreIndex();
+		}
+		
+		return deleted.size();
 	}
 
 	public static class Line {

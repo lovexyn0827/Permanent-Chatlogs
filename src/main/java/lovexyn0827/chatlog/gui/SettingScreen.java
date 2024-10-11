@@ -16,7 +16,6 @@ import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.util.ChatMessages;
-import net.minecraft.text.HoverEvent;
 import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
