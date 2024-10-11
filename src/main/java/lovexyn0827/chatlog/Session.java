@@ -331,7 +331,8 @@ public final class Session {
 			}
 		}
 
-		try (PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))) {
+		INDEX.delete();
+		try (PrintWriter pw = new PrintWriter(new FileWriter(INDEX))) {
 			// This solution seems to be inefficient...
 			for (Summary s : summaries) {
 				// Avoid detached session summaries & sessions

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import it.unimi.dsi.fastutil.ints.IntLinkedOpenHashSet;
 import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.Session.Summary;
 import lovexyn0827.chatlog.i18n.I18N;
@@ -71,7 +72,9 @@ public final class SessionListScreen extends Screen {
 					if (entry != null ) {
 						this.client.setScreen(new ConfirmScreen((confirmed) -> {
 							if (confirmed) {
-								// TODO Session.delete(entry.summary.id);
+								IntLinkedOpenHashSet ids = new IntLinkedOpenHashSet();
+								ids.add(entry.summary.id);
+								Session.delete(ids);
 							}
 							
 							this.client.setScreen(this);
