@@ -5,6 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.gui.SessionListScreen;
 import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.gui.screen.Screen;
@@ -24,6 +25,6 @@ public class TitleScreenMixin extends Screen {
 						(btn) -> this.client.setScreen(new SessionListScreen()))
 				.dimensions(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20)
 				.build());
-		// XXX Session.tryRestoreUnsaved();
+		Session.tryRestoreUnsaved();
 	}
 }

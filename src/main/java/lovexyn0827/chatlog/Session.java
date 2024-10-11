@@ -48,8 +48,11 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lovexyn0827.chatlog.config.Options;
+import lovexyn0827.chatlog.i18n.I18N;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
+import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
@@ -91,6 +94,7 @@ public final class Session {
 	});
 	private static final File INDEX = new File(CHATLOG_FOLDER, "index.ssv");
 	private static final File INDEX_BACKUP = new File(CHATLOG_FOLDER, "index.bak");
+	private static final File UNSAVED_MARKER = new File(CHATLOG_FOLDER, "unsaved.marker");
 	public static Session current;
 	private Deque<Line> cachedChatLogs;
 	private final LinkedHashMap<UUID, String> uuidToName;
@@ -117,8 +121,32 @@ public final class Session {
 		this.autosaveWorker = new AutosaveWorker();
 		this.autosaveWorker.start();
 		this.version = Version.LATEST;
+		markUnsaved(id2File(this.id));
 	}
 	
+	private static void markUnsaved(File unsaved) {
+		if (unsaved != null) {
+			try (FileWriter fw = new FileWriter(UNSAVED_MARKER)) {
+				fw.append(unsaved.getAbsolutePath());
+			} catch (IOException e) {
+				LOGGER.warn("Unable to create unsaved marker!");
+				e.printStackTrace();
+			}
+		} else {
+			UNSAVED_MARKER.delete();
+		}
+	}
+	
+	private static File getUnsaved() {
+		try (Scanner s = new Scanner(new FileReader(UNSAVED_MARKER))) {
+			return new File(s.nextLine());
+		} catch (IOException e) {
+			LOGGER.warn("Unable to create unsaved marker!");
+			e.printStackTrace();
+			return null;
+		}
+	}
+
 	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
 			long startTime, long endTime, TimeZone timeZone, Version ver) {
 		this.cachedChatLogs = chatLogs;
@@ -389,6 +417,48 @@ public final class Session {
 			e.printStackTrace();
 		}
 	}
+	
+	public static void tryRestoreUnsaved() {
+		if (current != null) {
+			current.end();
+			if (current.autosaveWorker != null && current.autosaveWorker.isAlive()) {
+				try {
+					current.autosaveWorker.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		File unsaved = getUnsaved();
+		if (unsaved == null) {
+			return;
+		}
+		
+		boolean success = false;
+		Version[] loaders = Version.values();
+		// Iterate in an reversed order to ensure that newer versions are prioritized.
+		Summary s = null;
+		for (int i = loaders.length - 1; i >= 0; i--) {
+			Version ver = loaders[i];
+			if ((s = ver.inferMetadata(unsaved)) != null) {
+				break;
+			}
+		}
+		
+		if (s != null) {
+			success = s.write();
+		}
+		
+		if (!success) {
+			SystemToast warning = new SystemToast(new SystemToast.Type(), 
+					I18N.translateAsText("gui.restore.failure"), 
+					I18N.translateAsText("gui.restore.failure.desc"));
+			MinecraftClient.getInstance().getToastManager().add(warning);
+		}
+		
+		markUnsaved(null);
+	}
 
 	public static class Line {
 		public final UUID sender;
@@ -516,6 +586,18 @@ public final class Session {
 			this.size = s.messageCount;
 			this.timeZone = s.timeZone;
 			this.version = s.version;
+		}
+		
+
+		private Summary(int id, String saveName, long startTime, long endTime, long size, TimeZone timeZone,
+				Version version) {
+			this.id = id;
+			this.saveName = saveName;
+			this.startTime = startTime;
+			this.endTime = endTime;
+			this.size = size;
+			this.timeZone = timeZone;
+			this.version = version;
 		}
 		
 		protected boolean write() {
@@ -691,7 +773,7 @@ public final class Session {
 				File file = id2File(summary.id);
 				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
 						new BufferedInputStream(new FileInputStream(file)))))) {
-					long endTime = file.lastModified();
+					long endTime = summary.endTime;
 					s.useDelimiter("[,\n]");
 					int id = Integer.parseInt(s.next());
 					String saveName = StringUtil.unescapeCsv(s.next()).toString();
@@ -752,12 +834,42 @@ public final class Session {
 			protected void serialize(Session session, int id) {
 				// Chat logs are saved while playing, so no extra processes are needed.
 			}
+			
+			@Override
+			protected Summary inferMetadata(File unsaved) {
+				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
+						new BufferedInputStream(new FileInputStream(unsaved)))))) {
+					long endTime = unsaved.lastModified();
+					s.useDelimiter("[,\n]");
+					int id = Integer.parseInt(s.next());
+					String saveName = StringUtil.unescapeCsv(s.next()).toString();
+					long startTime = Long.parseLong(s.next());
+					TimeZone timeZone = TimeZone.getTimeZone(s.next());
+					s.nextLine();
+					int msgCnt = 0;
+					while(s.hasNextLine()) {
+						String l = s.nextLine();
+						if (l.charAt(0) == 'M') {
+							msgCnt++;
+						}
+					}
+					return new Session.Summary(id, saveName, startTime, endTime, msgCnt, timeZone, 
+							Version.V_20240826);
+				} catch (Exception e) {
+					return null;
+				}
+			}
 		};
 		
 		public static final Version LATEST = V_20240826;
 		
 		protected abstract Session load(Summary summary);
 		protected abstract void serialize(Session session, int id);
+		
+
+		protected Summary inferMetadata(File unsaved) {
+			return null;
+		}
 	}
 	
 	private final class AutosaveWorker extends Thread {
@@ -832,6 +944,7 @@ public final class Session {
 			Session.this.writeSummary();
 			Version.LATEST.serialize(Session.this, Session.this.id);
 			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
+			markUnsaved(null);
 		}
 	}
 }

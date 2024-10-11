@@ -45,6 +45,8 @@
 		"gui.extract.choend": "刚才仅选择了一个边界位置，请问现在需要提取该位置之前还是之后的消息？", 
 		"gui.extract.before": "之前", 
 		"gui.extract.after": "之后", 
+		"gui.restore.failure": "未能恢复未保存的聊天记录！", 
+		"gui.restore.failure.desc": "如有需要请检查chatlog文件夹", 
 		
 		"opt.visibleLineCount.desc": "覆写聊天框中消息历史的最大可见行数。", 
 		"opt.autoSaveIntervalInMs.desc": "每次自动保存之间的间隔。在realtimeChatlogSaving启用时失效。", 
