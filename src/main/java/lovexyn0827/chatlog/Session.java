@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.MalformedJsonException;
 
@@ -809,7 +810,6 @@ public final class Session {
 									} catch (Exception e) {
 										LOGGER.error("Failed to parse line: {}", l);
 										e.printStackTrace();
-										
 									}
 								});
 								break;
@@ -827,9 +827,9 @@ public final class Session {
 								});
 								break;
 							}
-						} catch (EOFException | MalformedJsonException e) {
+						} catch (EOFException | MalformedJsonException | JsonSyntaxException e) {
 							e.printStackTrace();
-							if (!Options.allowCorruptedChatlogs) {
+							if (Options.allowCorruptedChatlogs) {
 								break;
 							} else {
 								return null;
@@ -865,7 +865,7 @@ public final class Session {
 					int msgCnt = 0;
 					while(s.hasNextLine()) {
 						String l = s.nextLine();
-						if (l.charAt(0) == 'M') {
+						if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
 							msgCnt++;
 						}
 					}
@@ -907,7 +907,7 @@ public final class Session {
 					int msgCnt = 0;
 					while(s.hasNextLine()) {
 						String l = s.nextLine();
-						if (l.charAt(0) == 'M') {
+						if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
 							msgCnt++;
 						}
 					}
