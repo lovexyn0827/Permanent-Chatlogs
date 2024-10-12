@@ -136,6 +136,20 @@ final class HtmlFormatAdapter extends FormatAdapter {
 			text2StringIgnoringEvents(js, itemVal.asStack().toHoverableText());
 		}
 	}
+	
+	private static void writeStringWithNewLines(String str, XMLStreamWriter html) throws XMLStreamException {
+		String[] segs = str.split("\\n");
+		for (int i = 0; i < segs.length; i++) {
+			html.writeCharacters(segs[i]);
+			if (i < segs.length - 1) {
+				html.writeEmptyElement("br");
+			}
+		}
+		
+		if (str.endsWith("\n")) {
+			html.writeEmptyElement("br");
+		}
+	}
 
 	private static void text2StringIgnoringEvents(StringBuilder buf, Text t) {
 		StringWriter out = new StringWriter();
@@ -173,7 +187,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 					depth++;
 				}
 				
-				html.writeCharacters(str);
+				writeStringWithNewLines(str, html);
 				for (int i = 0; i < depth; i++) {
 					html.writeEndElement();
 				}
@@ -231,7 +245,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 					this.hoverEventsBySpan.put(spanId, he);
 				}
 				
-				this.html.writeCharacters(str);
+				writeStringWithNewLines(str, this.html);
 				for (int i = 0; i < depth; i++) {
 					this.html.writeEndElement();
 				}
