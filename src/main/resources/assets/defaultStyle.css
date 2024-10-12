@@ -1,7 +1,7 @@
 body {
 	background: #1F1F1F;
 	color: #FFFFFF;
-	font-family: "Mojangles";
+	font-family: "Mojangles", "Unifont";
 	font-size: 133.333333%;
 }
 
@@ -16,10 +16,10 @@ body {
 }
 
 .tooltip {
-	max-width: 66.7%;
-	border-radius: 8px;
-	border: 8px soild #00FFFF;
-	background: #003F7F;
+	border: thick ridge #0F002F;
+	border-radius: 4px;
+	max-width: 50%;
+	background: #000000;
 	padding: 24px;
 	margin: 6px;
 	color: #FFFFFF;
