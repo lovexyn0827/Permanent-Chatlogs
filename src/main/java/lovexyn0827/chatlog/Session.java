@@ -624,30 +624,31 @@ public final class Session {
 		}
 		
 		protected Summary(String idxLine) {
-			try(Scanner s = new Scanner(idxLine)){
-				s.useDelimiter(",");
-				this.id = Integer.parseInt(s.next());
-				this.saveName = StringUtil.unescapeCsv(s.next()).toString();	// FIXME: Save name with commas
-				this.startTime = Long.parseLong(s.next());
-				this.endTime = Long.parseLong(s.next());
-				this.size = Integer.parseInt(s.next());
-				if(s.hasNext()) {
-					this.timeZone = TimeZone.getTimeZone(s.next());
-				} else {
-					this.timeZone = TimeZone.getDefault();
-				}
-				
-				if (s.hasNext()) {
-					this.version = Version.valueOf(s.next());
-				} else {
-					this.version = Version.EARLY_RELEASES;
-				}
-				
-				if (s.hasNext()) {
-					this.multiplayer = Boolean.valueOf(s.next());
-				} else {
-					this.multiplayer = false;
-				}
+			Iterator<String> itr = StringUtil.unescapeCsvFields(idxLine)
+					.stream()
+					.map(CharSequence::toString)
+					.iterator();
+			this.id = Integer.parseInt(itr.next());
+			this.saveName = itr.next();	// FIXME We believed no one will use "" in their save names~
+			this.startTime = Long.parseLong(itr.next());
+			this.endTime = Long.parseLong(itr.next());
+			this.size = Integer.parseInt(itr.next());
+			if(itr.hasNext()) {
+				this.timeZone = TimeZone.getTimeZone(itr.next());
+			} else {
+				this.timeZone = TimeZone.getDefault();
+			}
+			
+			if (itr.hasNext()) {
+				this.version = Version.valueOf(itr.next());
+			} else {
+				this.version = Version.EARLY_RELEASES;
+			}
+			
+			if (itr.hasNext()) {
+				this.multiplayer = Boolean.valueOf(itr.next());
+			} else {
+				this.multiplayer = false;
 			}
 		}
 		
@@ -785,13 +786,16 @@ public final class Session {
 				File file = id2File(summary.id);
 				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
 						new BufferedInputStream(new FileInputStream(file)))))) {
+					String metaLine = s.nextLine();
+					Iterator<String> itr = StringUtil.unescapeCsvFields(metaLine)
+							.stream()
+							.map(CharSequence::toString)
+							.iterator();
 					long endTime = summary.endTime;
-					s.useDelimiter("[,\n]");
-					int id = Integer.parseInt(s.next());
-					String saveName = StringUtil.unescapeCsv(s.next()).toString();
-					long startTime = Long.parseLong(s.next());
-					TimeZone timeZone = TimeZone.getTimeZone(s.next());
-					s.nextLine();
+					int id = Integer.parseInt(itr.next());
+					String saveName = itr.next();
+					long startTime = Long.parseLong(itr.next());
+					TimeZone timeZone = TimeZone.getTimeZone(itr.next());
 					ArrayDeque<Line> lines = new ArrayDeque<>();
 					LinkedHashMap<UUID, String> namesByUuid = new LinkedHashMap<>();
 					while(s.hasNextLine()) {
@@ -890,13 +894,16 @@ public final class Session {
 				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
 						new BufferedInputStream(new FileInputStream(unsaved)))))) {
 					long endTime = unsaved.lastModified();
-					s.useDelimiter("[,\n]");
-					int id = Integer.parseInt(s.next());
-					String saveName = StringUtil.unescapeCsv(s.next()).toString();
-					long startTime = Long.parseLong(s.next());
-					TimeZone timeZone = TimeZone.getTimeZone(s.next());
-					boolean multiplayer = Boolean.valueOf(s.next());
-					s.nextLine();
+					String metaLine = s.nextLine();
+					Iterator<String> itr = StringUtil.unescapeCsvFields(metaLine)
+							.stream()
+							.map(CharSequence::toString)
+							.iterator();
+					int id = Integer.parseInt(itr.next());
+					String saveName = itr.next();
+					long startTime = Long.parseLong(itr.next());
+					TimeZone timeZone = TimeZone.getTimeZone(itr.next());
+					boolean multiplayer = itr.hasNext() ? Boolean.valueOf(itr.next()) : false;
 					int msgCnt = 0;
 					while(s.hasNextLine()) {
 						String l = s.nextLine();
@@ -904,6 +911,7 @@ public final class Session {
 							msgCnt++;
 						}
 					}
+					
 					return new Session.Summary(id, saveName, startTime, endTime, msgCnt, timeZone, 
 							multiplayer, this);
 				} catch (Exception e) {
@@ -986,6 +994,7 @@ public final class Session {
 			this.chatlogWriter.close();
 			if (Session.this.messageCount == 0) {
 				this.chatlogFile.delete();
+				markUnsaved(null);
 				return;
 			}
 			
