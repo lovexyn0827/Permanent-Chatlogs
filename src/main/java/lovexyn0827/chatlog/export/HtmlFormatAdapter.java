@@ -102,9 +102,12 @@ final class HtmlFormatAdapter extends FormatAdapter {
 			js.append("\", ");
 			js.append("value: \"");
 			serializeHoverEventValue(js, e.getValue(e.getAction()));
-			js.append("\"},\n");
+			js.append("\"},");
 		});
-		js.deleteCharAt(js.length() - 1);
+		if (js.codePointAt(js.length() - 1) == ',') {
+			js.deleteCharAt(js.length() - 1);
+		}
+		
 		js.append("}; ");
 		js.append("const clickEvents = {");
 		this.clickEventsBySpan.forEach((span, e) -> {
@@ -114,9 +117,12 @@ final class HtmlFormatAdapter extends FormatAdapter {
 			js.append("\", ");
 			js.append("value: \"");
 			js.append(StringEscapeUtils.escapeJava(e.getValue()));
-			js.append("\"},\n");
+			js.append("\"},");
 		});
-		js.deleteCharAt(js.length() - 1);
+		if (js.codePointAt(js.length() - 1) == ',') {
+			js.deleteCharAt(js.length() - 1);
+		}
+		
 		js.append("};");
 	}
 	
