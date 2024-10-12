@@ -3,6 +3,7 @@ package lovexyn0827.chatlog.gui;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.charset.Charset;
 
 import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.Session.Summary;
@@ -89,7 +90,7 @@ public class ExportSessionScreen extends Screen {
 		}
 		
 		File target = new File(EXPORT_FOLDER, this.fileName.getText() + "." + extension);
-		try (BufferedWriter w = new BufferedWriter(new FileWriter(target))) {
+		try (BufferedWriter w = new BufferedWriter(new FileWriter(target, Charset.forName("UTF-8")))) {
 			FormatAdapter fmt = this.format.getValue().create(
 					w, this.sessionMeta, session, new ExportConfig(false, true));
 			fmt.write();
