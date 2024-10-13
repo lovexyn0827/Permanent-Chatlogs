@@ -58,6 +58,7 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
 
+// TODO Merge & Auto merge
 public final class Session {
 	private static final Logger LOGGER = LogManager.getLogger("ChatlogSession");
 	private static final File CHATLOG_FOLDER = Util.make(() -> {
@@ -621,7 +622,7 @@ public final class Session {
 			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s,%s", 
 					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
 					this.endTime, this.size, this.timeZone.getID(), 
-					Version.LATEST.name(), this.multiplayer));
+					this.version.name(), this.multiplayer));
 		}
 		
 		protected Summary(String idxLine) {
@@ -788,6 +789,12 @@ public final class Session {
 				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
 						new BufferedInputStream(new FileInputStream(file)))))) {
 					String metaLine = s.nextLine();
+					if (metaLine.startsWith("{")) {
+						// Version info may be effectively lost from metadata in 0.3.0
+						s.close();
+						return EARLY_RELEASES.load(summary);
+					}
+					
 					Iterator<String> itr = StringUtil.unescapeCsvFields(metaLine)
 							.stream()
 							.map(CharSequence::toString)
