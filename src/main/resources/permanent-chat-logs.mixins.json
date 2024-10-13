@@ -6,7 +6,7 @@
 		"TitleScreenMixin", 
 		"ChatHudMixin", 
 		"MinecraftClientMixin", 
-		"MultiplayerScreenMixin", 
+		"ConnectScreenMixin", 
 		"WorldListWidgetWorldEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
