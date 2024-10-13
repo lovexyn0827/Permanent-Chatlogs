@@ -6,7 +6,7 @@
 		"TitleScreenMixin", 
 		"ChatHudMixin", 
 		"MinecraftClientMixin", 
-		"MultiplayerScreenMixin", 
+		"ConnectScreenMixin", 
 		"WorldListWidgetWorldEntryMixin", 
 		"ClientPlayNetworkHandlerMixin", 
 		"ChatScreenMixin", 
@@ -14,7 +14,9 @@
 		"LanguageManagerMixin", 
 		"ChaHudMixin_overrideMaxMessages", 
 		"ClickEventActionMixin", 
-		"HoverEventActionMixin"
+		"HoverEventActionMixin", 
+		"KeyboardMixin", 
+		"TextFieldWidgetAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

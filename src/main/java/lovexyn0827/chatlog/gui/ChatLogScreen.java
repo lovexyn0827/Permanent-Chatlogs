@@ -5,22 +5,29 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.google.common.collect.ImmutableList;
 
 import lovexyn0827.chatlog.Session;
+import lovexyn0827.chatlog.Session.Line;
 import lovexyn0827.chatlog.i18n.I18N;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
+import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.toast.SystemToast;
 import net.minecraft.client.util.ChatMessages;
+import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.OrderedText;
@@ -32,11 +39,12 @@ public final class ChatLogScreen extends Screen {
 	private final ZoneId timeZone;
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
+	private CyclingButtonWidget<SearchingMode> searchBarModeChooser;
 	
-	protected ChatLogScreen(Session.Summary s) {
-		super(Text.literal(s.saveName));
-		this.session = Session.load(s);
-		this.timeZone = s.timeZone.toZoneId();
+	protected ChatLogScreen(Session.Summary metadata, Session session) {
+		super(Text.literal(metadata.saveName));
+		this.session = session;
+		this.timeZone = metadata.timeZone.toZoneId();
 	}
 
 	@Override
@@ -46,6 +54,59 @@ public final class ChatLogScreen extends Screen {
 		this.searchField = new SearchFieldWidget(this.textRenderer);
 		this.addDrawableChild(this.searchField);
 		this.addDrawableChild(this.chatlogs);
+		this.searchBarModeChooser = CyclingButtonWidget
+				.<SearchingMode>builder(SearchingMode::displayedText)
+				.values(SearchingMode.values())
+				.initially(SearchingMode.TEXT)
+				.build(2, 0, (int) (this.client.getWindow().getScaledWidth() * 0.2F) - 4, 20, 
+						ScreenTexts.EMPTY, (b, v) -> this.chatlogs.filter(this.searchField.getText()));
+		ButtonWidget extractBtn = ButtonWidget.builder(I18N.translateAsText("gui.extract"), 
+				(btn) -> {
+					List<Session.Line> delims = this.chatlogs.collectDelimiters();
+					SystemToast warning;
+					switch (delims.size()) {
+					case 0:
+						warning = new SystemToast(new SystemToast.Type(), 
+								I18N.translateAsText("gui.extract.nodelim"), 
+								I18N.translateAsText("gui.extract.nodelim.desc"));
+						MinecraftClient.getInstance().getToastManager().add(warning);
+						break;
+					case 1:
+						ConfirmScreen endChooser = new ConfirmScreen((before) -> {
+									Session chosen;
+									if (before) {
+										chosen = this.session.clip(null, delims.get(0));
+									} else {
+										chosen = this.session.clip(delims.get(0), null);
+									}
+									
+									this.saveExtractedSession(chosen);
+									this.client.setScreen(this);
+								}, ScreenTexts.EMPTY, 
+								I18N.translateAsText("gui.extract.choend"), 
+								I18N.translateAsText("gui.extract.before"), 
+								I18N.translateAsText("gui.extract.after"));
+						this.client.setScreen(endChooser);
+						break;
+					case 2:
+						this.saveExtractedSession(this.session.clip(delims.get(0), delims.get(1)));
+						break;
+					default:
+						warning = new SystemToast(new SystemToast.Type(), 
+								I18N.translateAsText("gui.extract.muldelim"), 
+								I18N.translateAsText("gui.extract.muldelim.desc"));
+						MinecraftClient.getInstance().getToastManager().add(warning);
+					}
+				})
+				.dimensions((int) (this.client.getWindow().getScaledWidth() * 0.8F) + 2, 0, 
+						(int) (this.client.getWindow().getScaledWidth() * 0.2F) - 4, 20)
+				.build();
+		this.addDrawableChild(this.searchBarModeChooser);
+		this.addDrawableChild(extractBtn);
+	}
+	
+	private void saveExtractedSession(Session s) {
+		s.save();
 	}
 	
 	@Override
@@ -68,13 +129,25 @@ public final class ChatLogScreen extends Screen {
 			super(client, ChatLogScreen.this.client.getWindow().getScaledWidth(), 
 					ChatLogScreen.this.height - 40, 20, client.textRenderer.fontHeight + 1);
 			session.getAllMessages().forEach((l) -> {
+				boolean[] firstLine = new boolean[] { true };
 				ChatMessages.breakRenderedChatMessageLines(l.message, 
 						ChatLogScreen.this.client.getWindow().getScaledWidth() - 14, 
-						ChatLogScreen.this.textRenderer).forEach((t) -> this.addEntry(new Entry(t, l.time)));
+						ChatLogScreen.this.textRenderer).forEach((t) -> {
+							this.addEntry(new Entry(l, t, l.time, firstLine[0]));
+							firstLine[0] = false;
+						});
 			});
 			this.allEntries = ImmutableList.copyOf(this.children());
 		}
 		
+		public List<Line> collectDelimiters() {
+			return this.allEntries.stream()
+					.filter((e) -> e.isDelimiter)
+					.map((e) -> e.owner)
+					.distinct()
+					.collect(Collectors.toList());
+		}
+
 		@Override
 		public int getRowWidth() {
 			return ChatLogScreen.this.client.getWindow().getScaledWidth();
@@ -95,19 +168,37 @@ public final class ChatLogScreen extends Screen {
 		
 		protected void filter(String in) {
 			this.replaceEntries(this.allEntries.stream()
-					.filter((e) -> e.lineStr.contains(in))
+					.filter((e) -> {
+						switch (ChatLogScreen.this.searchBarModeChooser.getValue()) {
+						case TEXT:
+							return e.lineStr.contains(in);
+						case TIME:
+							return e.getFormattedTime().contains(in);
+						case SENDER:
+							return true;	// TODO
+						case EVENT:
+							return e.owner instanceof Session.Event && e.lineStr.contains(in);
+						default:
+							return true;
+						}
+					})
 					.collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
 			this.setScrollAmount(0);
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {
+			private final Session.Line owner;
 			private final OrderedText line;
 			private final String lineStr;
 			private final long time;
+			private final boolean firstLine;
+			private boolean isDelimiter = false;
 			
-			protected Entry(OrderedText t, long time) {
+			protected Entry(Session.Line owner, OrderedText t, long time, boolean firstLine) {
+				this.owner = owner;
 				this.line = t;
 				this.time = time;
+				this.firstLine = firstLine;
 				StringBuilder sb = new StringBuilder();
 				t.accept((idx, style, cp) -> {
 					sb.append((char) cp);
@@ -116,18 +207,27 @@ public final class ChatLogScreen extends Screen {
 				this.lineStr = sb.toString();
 			}
 			
+			public String getFormattedTime() {
+				return (this.time == 0L) ? I18N.translate("gui.unknowntime") : 
+						Instant.ofEpochMilli(this.time)
+								.atZone(ChatLogScreen.this.timeZone)
+								.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+			}
+
 			@Override
 			public void render(DrawContext ctx, int j, int y, int x, 
 					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
 				ctx.drawTextWithShadow(tr, this.line, x + 4, y, 0xFFFFFFFF);
-				ctx.fill(x + 1, y, x + 3, y + 9, 0xFF31F38B);
+				if (this.isDelimiter) {
+					int textWidth = ChatLogScreen.this.client.getWindow().getScaledWidth() - 14;
+					ctx.drawHorizontalLine(x + 4, x + textWidth, y - 1, 0xFFFF0000);
+				}
+				
+				ctx.fill(x + 1, y + (this.firstLine ? 2 : 0), x + 3, y + 10, this.owner.getMarkColor());
 				if(hovering) {
 					if(mouseX - x < 4) {
-						String time = (this.time == 0L) ? I18N.translate("gui.unknowntime") : 
-							Instant.ofEpochMilli(this.time)
-									.atZone(ChatLogScreen.this.timeZone)
-									.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+						String time = this.getFormattedTime();
 						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
 					} else {
 						Text tip = this.getToolTip(mouseX, mouseY);
@@ -197,6 +297,10 @@ public final class ChatLogScreen extends Screen {
 					}
 				}
 				
+				if (Screen.hasShiftDown()) {
+					this.isDelimiter ^= true;
+				}
+				
 				return false;
 			}
 		}
@@ -206,10 +310,21 @@ public final class ChatLogScreen extends Screen {
 		public SearchFieldWidget(TextRenderer textRenderer) {
 			super(textRenderer,  
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.2F), 2, 
-					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.6F), 14, 
+					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.6F), 16, 
 					I18N.translateAsText("gui.search")
 			);
 			this.setChangedListener(ChatLogScreen.this.chatlogs::filter);
+		}
+	}
+	
+	private enum SearchingMode {
+		TEXT, 
+		TIME, 
+		SENDER, 
+		EVENT;
+		
+		protected Text displayedText() {
+			return I18N.translateAsText("gui.search.mode." + this.name().toLowerCase());
 		}
 	}
 }
