@@ -38,7 +38,7 @@ public final class SessionListScreen extends Screen {
             Screen parent,
             Predicate<Session.Summary> filterer
     ) {
-		super(I18N.translateAsText("gui.chatlogs"));
+		super(I18N.translateAsText("gui.filter.result"));
         this.parent = parent;
 		this.filterer = filterer;
 	}
@@ -85,15 +85,15 @@ public final class SessionListScreen extends Screen {
 				.build();
 		ButtonWidget filterBtn = ButtonWidget.builder(I18N.translateAsText("gui.filter"), 
 						(btn) -> this.client.setScreen(new FilterSessionScreen(client.currentScreen)))
-				.dimensions(this.width / 2 - 128, 2, 80, 20)
+				.dimensions(this.width / 2 - 128, 20, 80, 20)
 				.build();
 		ButtonWidget settingBtn = ButtonWidget.builder(I18N.translateAsText("gui.settings"), 
 						(btn) -> this.client.setScreen(new SettingScreen(client.currentScreen)))
-				.dimensions(this.width / 2 - 40, 2, 80, 20)
+				.dimensions(this.width / 2 - 40, 20, 80, 20)
 				.build();
 		ButtonWidget exitBtn = ButtonWidget.builder(ScreenTexts.BACK, 
 						(btn) -> this.client.setScreen(this.parent))
-				.dimensions(this.width / 2 + 48, 2, 80, 20)
+				.dimensions(this.width / 2 + 48, 20, 80, 20)
 				.build();
 		if (this.enablePaging) {
 			ButtonWidget prevBtn = ButtonWidget.builder(I18N.translateAsText("gui.prev"), 
@@ -119,6 +119,13 @@ public final class SessionListScreen extends Screen {
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		this.renderBackground(ctx, mouseY, mouseY, delta);
+        ctx.drawCenteredTextWithShadow(
+                this.client.textRenderer,
+                this.title,
+                this.width / 2,
+                8,
+                0xFFFFFF
+        );
 		this.displayedSessions.render(ctx, mouseX, mouseY, delta);
 		super.render(ctx, mouseX, mouseY, delta);
 	}
@@ -139,7 +146,7 @@ public final class SessionListScreen extends Screen {
 		
 		public SessionList(MinecraftClient mc) {
 			super(mc, SessionListScreen.this.width, 
-					SessionListScreen.this.height - (SessionListScreen.this.enablePaging ? 84 : 61), 30, 32);
+					SessionListScreen.this.height - (SessionListScreen.this.enablePaging ? 84 : 61), 50, 32);
 			this.toPage(0);
 		}
 		
