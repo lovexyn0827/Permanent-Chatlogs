@@ -32,13 +32,18 @@ import net.minecraft.util.Pair;
 import net.minecraft.util.Util;
 
 public class FullTextSearchResultScreen extends Screen {
+    private final Screen parent;
 	private final ConcurrentHashMap<Summary, List<Pair<Integer, Line>>> results;
 	private SessionList sessions;
 	private MessageList messages;
 
-	protected FullTextSearchResultScreen(ConcurrentHashMap<Summary, List<Pair<Integer, Line>>> results) {
+	protected FullTextSearchResultScreen(
+            Screen parent,
+            ConcurrentHashMap<Summary, List<Pair<Integer, Line>>> results
+    ) {
 		super(I18N.translateAsText("gui.filter.result"));
-		this.results = results;
+		this.parent = parent;
+        this.results = results;
 	}
 	
 	@Override
@@ -51,7 +56,7 @@ public class FullTextSearchResultScreen extends Screen {
 	
 	@Override
 	public void close() {
-		this.client.setScreen(new SessionListScreen());
+		this.client.setScreen(this.parent);
 	}
 	
 	@Override

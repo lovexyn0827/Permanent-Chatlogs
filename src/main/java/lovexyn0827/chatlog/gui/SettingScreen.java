@@ -21,10 +21,12 @@ import net.minecraft.client.util.ChatMessages;
 import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
+    private final Screen parent;
 	private OptionListWidget optionList;
 	
-	protected SettingScreen() {
+	protected SettingScreen(Screen parent) {
 		super(Text.literal("Settings"));
+        this.parent = parent;
 	}
 
 	@Override
@@ -51,7 +53,7 @@ public final class SettingScreen extends Screen {
 	
 	@Override
 	public void close() {
-		this.client.setScreen(new SessionListScreen());
+		this.client.setScreen(this.parent);
 	}
 	
 	private final class OptionListWidget extends EntryListWidget<OptionListWidget.Entry> {

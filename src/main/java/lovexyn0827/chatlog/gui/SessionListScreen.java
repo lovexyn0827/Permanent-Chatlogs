@@ -23,17 +23,23 @@ import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 
 public final class SessionListScreen extends Screen {
+    private final Screen parent;
 	private SessionList displayedSessions;
 	private final Predicate<Session.Summary> filterer;
 	private final boolean enablePaging = Options.sessionListPaging;
 	
-	public SessionListScreen() {
+	public SessionListScreen(Screen parent) {
 		super(I18N.translateAsText("gui.chatlogs"));
+        this.parent = parent;
 		this.filterer = (s) -> true;
 	}
 	
-	public SessionListScreen(Predicate<Session.Summary> filterer) {
+	public SessionListScreen(
+            Screen parent,
+            Predicate<Session.Summary> filterer
+    ) {
 		super(I18N.translateAsText("gui.chatlogs"));
+        this.parent = parent;
 		this.filterer = filterer;
 	}
 	
@@ -55,7 +61,7 @@ public final class SessionListScreen extends Screen {
 				(btn) -> {
 					SessionList.SessionEntry entry = this.displayedSessions.getFocused();
 					if (entry != null ) {
-						this.client.setScreen(new ExportSessionScreen(entry.summary));
+						this.client.setScreen(new ExportSessionScreen(client.currentScreen, entry.summary));
 					}
 				})
 				.dimensions(this.width / 2 - 40, openBtnYPos, 80, 20)
@@ -78,15 +84,15 @@ public final class SessionListScreen extends Screen {
 				.dimensions(this.width / 2 + 48, openBtnYPos, 80, 20)
 				.build();
 		ButtonWidget filterBtn = ButtonWidget.builder(I18N.translateAsText("gui.filter"), 
-						(btn) -> this.client.setScreen(new FilterSessionScreen()))
+						(btn) -> this.client.setScreen(new FilterSessionScreen(client.currentScreen)))
 				.dimensions(this.width / 2 - 128, 2, 80, 20)
 				.build();
 		ButtonWidget settingBtn = ButtonWidget.builder(I18N.translateAsText("gui.settings"), 
-						(btn) -> this.client.setScreen(new SettingScreen()))
+						(btn) -> this.client.setScreen(new SettingScreen(client.currentScreen)))
 				.dimensions(this.width / 2 - 40, 2, 80, 20)
 				.build();
 		ButtonWidget exitBtn = ButtonWidget.builder(ScreenTexts.BACK, 
-						(btn) -> this.client.setScreen(new TitleScreen()))
+						(btn) -> this.client.setScreen(this.parent))
 				.dimensions(this.width / 2 + 48, 2, 80, 20)
 				.build();
 		if (this.enablePaging) {
@@ -116,6 +122,11 @@ public final class SessionListScreen extends Screen {
 		this.displayedSessions.render(ctx, mouseX, mouseY, delta);
 		super.render(ctx, mouseX, mouseY, delta);
 	}
+
+    @Override
+    public void close() {
+        this.client.setScreen(this.parent);
+    }
 	
 	private final class SessionList extends AlwaysSelectedEntryListWidget<SessionList.SessionEntry> {
 		private final List<Session.Summary> allSessions = Session.getSessionSummaries()
