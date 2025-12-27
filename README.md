@@ -44,4 +44,3 @@ Also, searching for sessions or messages in the history is supported, you may fi
 If a text in the chat logs has a click event or hover event, a hovering tooltip is displayed, with the argument of the event on it. When both click event and hover event are present in the same text, only the argument of the hover event is displayed initially, to get the argument of the click event, press the Alt key.
 
 The texts on the tooltips can be copied by clicking the text with Ctrl down.
-t
