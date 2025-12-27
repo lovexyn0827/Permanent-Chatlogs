@@ -31,12 +31,12 @@ public class FullTextSearchProgressScreen extends Screen {
 		this.msgKeyword = msgKeyword;
 		this.caseSensitive = caseSensitive;
 	}
-	
+
 	@Override
 	public void close() {
 		this.client.setScreen(this.parent);
 	}
-	
+
 	@Override
 	public void init() {
 		super.init();
@@ -70,9 +70,9 @@ public class FullTextSearchProgressScreen extends Screen {
 	
 	private void showSearchResults(boolean showMessage) {
 		if (showMessage) {
-			this.client.setScreen(new FullTextSearchResultScreen(this.results));
+			this.client.setScreen(new FullTextSearchResultScreen(this.parent,this.results));
 		} else {
-			this.client.setScreen(new SessionListScreen(this.results::containsKey));
+			this.client.setScreen(new SessionListScreen(this.parent,this.results::containsKey));
 		}
 	}
 	

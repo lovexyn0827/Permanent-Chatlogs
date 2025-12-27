@@ -20,6 +20,7 @@ import net.minecraft.screen.ScreenTexts;
 import net.minecraft.util.Util;
 
 public class ExportSessionScreen extends Screen {
+    private final Screen parent;
 	private static final File EXPORT_FOLDER = Util.make(() -> {
 		File f = new File("chatlogs/export");
 		if (f.isDirectory()) {
@@ -37,8 +38,9 @@ public class ExportSessionScreen extends Screen {
 	private CyclingButtonWidget<Boolean> openAfterExport;
 	private final Summary sessionMeta;
 	
-	protected ExportSessionScreen(Summary summary) {
+	protected ExportSessionScreen(Screen parent,Summary summary) {
 		super(I18N.translateAsText("gui.export"));
+        this.parent = parent;
 		this.sessionMeta = summary;
 	}
 	
@@ -112,6 +114,6 @@ public class ExportSessionScreen extends Screen {
 	
 	@Override
 	public void close() {
-		this.client.setScreen(new SessionListScreen());
+		this.client.setScreen(this.parent);
 	}
 }

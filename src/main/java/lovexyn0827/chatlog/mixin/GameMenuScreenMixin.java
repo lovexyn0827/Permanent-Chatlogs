@@ -30,7 +30,7 @@ public class GameMenuScreenMixin extends Screen {
 	)
 	private void appendButtons(CallbackInfo ci, GridWidget gridWidget, GridWidget.Adder adder, Text text) {
 		ButtonWidget chatlogBtn = ButtonWidget.builder(I18N.translateAsText("gui.chatlogs"), (btn) -> {
-			this.client.setScreen(new SessionListScreen());
+			this.client.setScreen(new SessionListScreen(client.currentScreen));
 		}).width(204).build();
 		adder.add(chatlogBtn, 2);
 	}

@@ -32,6 +32,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 public final class FilterSessionScreen extends Screen {
+    private final Screen parent;
 	private final List<Session.Summary> cachedSessions = Session.getSessionSummaries();
 	private Predicate<Session.Summary> filterer;
 	private TextFieldWidget saveName;
@@ -42,8 +43,9 @@ public final class FilterSessionScreen extends Screen {
 	private CheckboxWidget caseSenstive;
 	private CyclingButtonWidget<Scope> scopeBtn;
 	
-	protected FilterSessionScreen() {
+	protected FilterSessionScreen(Screen parent) {
 		super(I18N.translateAsText("gui.filter.sessions"));
+        this.parent = parent;
 	}
 
 	@Override
@@ -109,10 +111,10 @@ public final class FilterSessionScreen extends Screen {
 		
 		if (!this.contents.getText().isEmpty()) {
 			this.client.setScreen(new FullTextSearchProgressScreen(
-					this, this.filterer, this.contents.getText(), this.caseSenstive.isChecked()));
+					this.parent, this.filterer, this.contents.getText(), this.caseSenstive.isChecked()));
 		} else {
 			this.filterer = this.filterer.and((s) -> this.scopeBtn.getValue().test(s));
-			this.client.setScreen(new SessionListScreen(this.filterer));
+			this.client.setScreen(new SessionListScreen(this.parent,this.filterer));
 		}
 	}
 	

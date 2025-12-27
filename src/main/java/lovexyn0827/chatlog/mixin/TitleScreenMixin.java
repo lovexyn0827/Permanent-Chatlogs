@@ -22,7 +22,7 @@ public class TitleScreenMixin extends Screen {
 	@Inject(method = "init", at = @At("RETURN"))
 	private void onInit(CallbackInfo ci) {
 		this.addDrawableChild(ButtonWidget.builder(I18N.translateAsText("gui.chatlogs"), 
-						(btn) -> this.client.setScreen(new SessionListScreen()))
+						(btn) -> this.client.setScreen(new SessionListScreen(client.currentScreen)))
 				.dimensions(this.width / 2 - 100, (this.height / 4 + 48) + 92 + 12, 98, 20)
 				.build());
 		UnsavedChatlogRecovery.tryRestoreUnsaved();
