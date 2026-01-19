@@ -286,7 +286,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 		this.html.writeEndElement();
 		this.html.writeEmptyElement("br");
 		this.html.writeCharacters(I18N.translate("export.this.html.footer2", 
-				MinecraftClient.getInstance().getGameProfile().getName()));
+				MinecraftClient.getInstance().getGameProfile().name()));
 		this.html.writeEndElement();
 	}
 	

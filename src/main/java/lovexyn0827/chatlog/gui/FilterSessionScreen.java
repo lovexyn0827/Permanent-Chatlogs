@@ -26,6 +26,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.predicate.NumberRange.IntRange;
 import net.minecraft.screen.ScreenTexts;
 import net.minecraft.text.Text;
@@ -158,9 +159,8 @@ public final class FilterSessionScreen extends Screen {
 				.checked(false)
 				.pos((int) (width * 0.75F) - 18, (int) (height * 0.25F) + 90)
 				.build();
-		this.scopeBtn = CyclingButtonWidget.builder(Scope::getText)
+		this.scopeBtn = CyclingButtonWidget.builder(Scope::getText, Scope.ALL)
 				.values(Scope.values())
-				.initially(Scope.ALL)
 				.build((int) (width * 0.35F), (int) (height * 0.25F) + 108, (int) (width * 0.4F), 20, 
 						Text.translatable("advMode.type"));
 		this.addDrawableChild(this.saveName);
@@ -245,12 +245,12 @@ public final class FilterSessionScreen extends Screen {
 		}
 		
 		@Override
-		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-			if (keyCode == GLFW.GLFW_KEY_TAB && ((TextFieldWidgetAccessor) this).getSuggestion() != null) {
+		public boolean keyPressed(KeyInput key) {
+			if (key.key() == GLFW.GLFW_KEY_TAB && ((TextFieldWidgetAccessor) this).getSuggestion() != null) {
 				this.setText(this.getText().concat(((TextFieldWidgetAccessor) this).getSuggestion()));
 				return true;
 			} else {
-				return super.keyPressed(keyCode, scanCode, modifiers);
+				return super.keyPressed(key);
 			}
 		}
 	}

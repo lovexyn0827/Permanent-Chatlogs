@@ -49,13 +49,12 @@ public class ExportSessionScreen extends Screen {
 				(int) (width * 0.4F), 14, 
 				I18N.translateAsText("gui.export.name"));
 		this.fileName.setText(Util.getFormattedCurrentTime());
-		this.format = CyclingButtonWidget.<FormatAdapter.Factory<?>>builder(FormatAdapter.Factory::getDisplayedText)
+		this.format = CyclingButtonWidget.<FormatAdapter.Factory<?>>builder(FormatAdapter.Factory::getDisplayedText, 
+						() -> FormatAdapter.FORMAT_FACTORIES.get(0))
 				.values(FormatAdapter.FORMAT_FACTORIES)
-				.initially(FormatAdapter.FORMAT_FACTORIES.get(0))
 				.build((int) (width * 0.3F), (int) (height * 0.25F) + 25, 
 						(int) (width * 0.4F), 20, I18N.translateAsText("gui.export.format"));
-		this.openAfterExport = CyclingButtonWidget.onOffBuilder(ScreenTexts.YES, ScreenTexts.NO)
-				.initially(false)
+		this.openAfterExport = CyclingButtonWidget.onOffBuilder(ScreenTexts.YES, ScreenTexts.NO, false)
 				.build((int) (width * 0.3F), (int) (height * 0.25F) + 50, 
 						(int) (width * 0.4F), 20, I18N.translateAsText("gui.export.open"));
 		this.addDrawableChild(this.fileName);

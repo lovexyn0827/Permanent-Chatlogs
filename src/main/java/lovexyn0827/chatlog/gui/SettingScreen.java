@@ -83,14 +83,14 @@ public final class SettingScreen extends Screen {
 			}
 			
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
-				int xOffset = ((int) (width * 0.25));
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int y = this.getY();
+				int xOffset = ((int) (this.getWidth() * 0.25));
 				ctx.drawText(SettingScreen.this.textRenderer, this.name, xOffset, y + 5, 0xFF31F38B, false);
-				if (hovering && mouseX < ctx.getScaledWindowWidth() * 0.5) {
+				if (hovered && mouseX < ctx.getScaledWindowWidth() * 0.5) {
 					ctx.drawOrderedTooltip(SettingScreen.this.textRenderer, 
 							ChatMessages.breakRenderedChatMessageLines(
-									Options.getToolTip(this.name.getString()), width / 2, 
+									Options.getToolTip(this.name.getString()), this.getWidth() / 2, 
 									SettingScreen.this.textRenderer), 
 							mouseX, mouseY);
 				}
@@ -130,11 +130,11 @@ public final class SettingScreen extends Screen {
 			}
 			
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
-				super.render(ctx, i, y, x, width, height, mouseX, mouseY, hovering, var10);
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int y = this.getY();
+				super.render(ctx, mouseX, mouseY, hovered, deltaTicks);
 				this.valueSelector.setY(y);
-				this.valueSelector.render(ctx, mouseX, mouseY, var10);
+				this.valueSelector.render(ctx, mouseX, mouseY, deltaTicks);
 			}
 		}
 		
@@ -162,11 +162,11 @@ public final class SettingScreen extends Screen {
 			}
 			
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
-				super.render(ctx, i, y, x, width, height, mouseX, mouseY, hovering, var10);
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int y = this.getY();
+				super.render(ctx, mouseX, mouseY, hovered, deltaTicks);
 				this.valueSelector.setY(y);
-				this.valueSelector.render(ctx, mouseX, mouseY, var10);
+				this.valueSelector.render(ctx, mouseX, mouseY, deltaTicks);
 			}
 		}
 	}

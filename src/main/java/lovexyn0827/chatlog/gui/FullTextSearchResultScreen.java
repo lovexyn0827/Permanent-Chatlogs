@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import lovexyn0827.chatlog.i18n.I18N;
 import lovexyn0827.chatlog.session.Session;
@@ -15,7 +17,9 @@ import lovexyn0827.chatlog.session.Session.Line;
 import lovexyn0827.chatlog.session.Session.Summary;
 import lovexyn0827.chatlog.util.TextEventContentExtractor;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextHandler;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
@@ -108,7 +112,7 @@ public class FullTextSearchResultScreen extends Screen {
 			}
 			
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
+			public boolean mouseClicked(Click click, boolean doubled) {
 				FullTextSearchResultScreen.this.messages.setSession(
 						this.summary, 
 						FullTextSearchResultScreen.this.results.get(this.summary));
@@ -129,8 +133,9 @@ public class FullTextSearchResultScreen extends Screen {
 			}
 
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int var7, int var8, boolean var9, float var10) {
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int x = this.getX();
+				int y = this.getY();
 				TextRenderer tr = FullTextSearchResultScreen.this.textRenderer;
 				ctx.drawText(tr, this.saveName, x, y, 0xFFFFFFFF, false);
 				ctx.drawText(tr, this.start, x, y + 10, 0xFFFFFFFF, false);
@@ -200,12 +205,13 @@ public class FullTextSearchResultScreen extends Screen {
 			}
 			
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int x = this.getX();
+				int y = this.getY();
 				TextRenderer tr = FullTextSearchResultScreen.this.textRenderer;
 				ctx.drawTextWithShadow(tr, this.text, x + 4, y, 0xFFFFFFFF);
 				ctx.fill(x + 1, y, x + 3, y + 10, this.owner == null ? 0 : this.owner.getMarkColor());
-				if(hovering) {
+				if (hovered) {
 					if(this.owner != null && mouseX - x < 4) {
 						String time = this.getFormattedTime();
 						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
@@ -232,20 +238,40 @@ public class FullTextSearchResultScreen extends Screen {
 						mouseX, mouseY);
 			}
 			
+			@SuppressWarnings("deprecation")
+			@Nullable
+			public Style getStyleAt(TextRenderer tr, OrderedText text, int x) {
+				TextHandler.WidthLimitingVisitor widthLimitingVisitor = 
+						tr.getTextHandler().new WidthLimitingVisitor((float)x);
+				MutableObject<Style> mutableObject = new MutableObject<>();
+				text.accept((index, style, codePoint) -> {
+					if (!widthLimitingVisitor.accept(index, style, codePoint)) {
+						mutableObject.setValue(style);
+						return false;
+					} else {
+						return true;
+					}
+				});
+				return mutableObject.getValue();
+			}
+			
 			@Nullable
 			private Text getToolTip(double mouseX, double mouseY) {
 				TextRenderer tr = FullTextSearchResultScreen.this.textRenderer;
 				double scale = FullTextSearchResultScreen.this.client.getWindow().getScaleFactor();
 				int pos = (int) Math.floor(mouseX - (MessageList.this.getX() + 4) * scale);
-				Style style = tr.getTextHandler().getStyleAt(this.text, pos);
-				if(style != null) {
+				Style style = this.getStyleAt(tr, this.text, pos);
+				if (style != null) {
 					HoverEvent he;
-					if((he = style.getHoverEvent()) != null && !Screen.hasAltDown()) {
+					boolean altDown = GLFW.glfwGetKey(
+							MinecraftClient.getInstance().getWindow().getHandle(), 
+							GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS;
+					if ((he = style.getHoverEvent()) != null && !altDown) {
 						return TextEventContentExtractor.getHoverEventContent(he);
 					}
 					
 					ClickEvent ce;
-					if((ce = style.getClickEvent()) != null) {
+					if ((ce = style.getClickEvent()) != null) {
 						return Text.literal(TextEventContentExtractor.getClickEventContent(ce));
 					}
 				}
@@ -254,9 +280,9 @@ public class FullTextSearchResultScreen extends Screen {
 			}
 			
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
-				if(Screen.hasControlDown()) {
-					Text tip = this.getToolTip(mouseX, mouseY);
+			public boolean mouseClicked(Click click, boolean doubled) {
+				if (click.hasCtrlOrCmd()) {
+					Text tip = this.getToolTip(click.x(), click.y());
 					if(tip != null) {
 						FullTextSearchResultScreen.this.client.keyboard.setClipboard(tip.getString());
 						return true;

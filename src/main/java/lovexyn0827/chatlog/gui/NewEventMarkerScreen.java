@@ -39,9 +39,8 @@ public class NewEventMarkerScreen extends Screen {
 				I18N.translateAsText("gui.marker.name"));
 		this.color = CyclingButtonWidget.<DyeColor>builder((c) -> {
 					return Text.translatable(c.asString().toUpperCase()).withColor(c.getSignColor());
-				})
+				}, () -> DyeColor.WHITE)
 				.values(Lists.newArrayList(DyeColor.values()))
-				.initially(DyeColor.WHITE)
 				.build((int) (width * 0.3), (int) (height * 0.25) + 27, 
 						(int) (width * 0.4), 23, 
 						I18N.translateAsText("gui.marker.color"));

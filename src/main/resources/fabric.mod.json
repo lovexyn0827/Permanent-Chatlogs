@@ -22,6 +22,7 @@
 	"mixins": [
 		"permanent-chat-logs.mixins.json"
 	],
+	"accessWidener" : "permanent-chat-logs.accesswidener",
 	"depends": {
 		"fabricloader": ">=0.8",
 		"minecraft": ">=1.21.3"

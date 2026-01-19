@@ -14,7 +14,7 @@ import lovexyn0827.chatlog.session.Session;
 import lovexyn0827.chatlog.session.SessionRecorder;
 import net.minecraft.client.Keyboard;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
 import net.minecraft.util.DyeColor;
 
@@ -23,10 +23,12 @@ public abstract class KeyboardMixin {
 	@Shadow @Final MinecraftClient client;
 	
 	@Inject(method = "onKey", at = @At("RETURN"))
-	private void handleKey(long window, int key, int scancode, int i, int j, CallbackInfo ci) {
-		boolean isBeingPressed = i == GLFW.GLFW_PRESS;
-		if(key == 'M' && Screen.hasControlDown() && isBeingPressed && SessionRecorder.current() != null) {
-			if (Screen.hasAltDown()) {
+	private void handleKey(long window, int action, KeyInput input, CallbackInfo ci) {
+		boolean isBeingPressed = action == GLFW.GLFW_PRESS;
+		boolean ctrlDown = input.hasCtrlOrCmd();
+		boolean altDown = input.hasAlt();
+		if (input.key() == 'M' && ctrlDown && isBeingPressed && SessionRecorder.current() != null) {
+			if (altDown) {
 				Text title = I18N.translateAsText("gui.marker.title");
 				Session.Event event = new Session.Event(title, 
 						System.currentTimeMillis(), DyeColor.RED.getSignColor());

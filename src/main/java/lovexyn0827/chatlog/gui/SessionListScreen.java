@@ -11,6 +11,7 @@ import lovexyn0827.chatlog.session.Session;
 import lovexyn0827.chatlog.session.Session.Summary;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
@@ -179,8 +180,9 @@ public final class SessionListScreen extends Screen {
 			}
 			
 			@Override
-			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int var7, int var8, boolean var9, float var10) {
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int x = this.getX();
+				int y = this.getY();
 				TextRenderer tr = SessionListScreen.this.client.textRenderer;
 				ctx.drawText(tr, this.saveName, x, y, 0xFFFFFFFF, false);
 				ctx.drawText(tr, this.start, x, y + 10, 0xFFFFFFFF, false);
@@ -188,7 +190,7 @@ public final class SessionListScreen extends Screen {
 			}
 			
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
+			public boolean mouseClicked(Click click, boolean doubled) {
 				SessionList.this.setFocused(this);
 				return true;
 			}

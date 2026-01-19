@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -19,7 +20,10 @@ import lovexyn0827.chatlog.util.TextEventContentExtractor;
 import lovexyn0827.chatlog.session.Session;
 import lovexyn0827.chatlog.session.Session.Line;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.font.TextHandler;
 import net.minecraft.client.font.TextRenderer;
+import net.minecraft.client.font.TextHandler.WidthLimitingVisitor;
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
@@ -29,6 +33,7 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.toast.SystemToast;
 import net.minecraft.client.util.ChatMessages;
 import net.minecraft.screen.ScreenTexts;
@@ -61,9 +66,8 @@ public final class ChatLogScreen extends Screen {
 		this.addDrawableChild(this.searchField);
 		this.addDrawableChild(this.chatlogs);
 		this.searchBarModeChooser = CyclingButtonWidget
-				.<SearchingMode>builder(SearchingMode::displayedText)
+				.<SearchingMode>builder(SearchingMode::displayedText, SearchingMode.TEXT)
 				.values(SearchingMode.values())
-				.initially(SearchingMode.TEXT)
 				.build(2, 0, (int) (this.client.getWindow().getScaledWidth() * 0.2F) - 4, 20, 
 						ScreenTexts.EMPTY, (b, v) -> this.chatlogs.search(this.searchField.getText()));
 		ButtonWidget extractBtn = ButtonWidget.builder(I18N.translateAsText("gui.extract"), 
@@ -125,9 +129,9 @@ public final class ChatLogScreen extends Screen {
 	}
 	
 	@Override
-	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-		this.chatlogs.keyPressed(keyCode, scanCode, modifiers);
-		return super.keyPressed(keyCode, scanCode, modifiers);
+	public boolean keyPressed(KeyInput key) {
+		this.chatlogs.keyPressed(key);
+		return super.keyPressed(key);
 	}
 	
 	@Override
@@ -174,8 +178,13 @@ public final class ChatLogScreen extends Screen {
 		
 		@Override
 		public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-			verticalAmount *= (double)this.itemHeight / 2.0 * (Screen.hasControlDown() ? 
-					(Screen.hasAltDown() ? 160 : 32) : 4.0);
+			boolean ctrlDown = GLFW.glfwGetKey(
+					MinecraftClient.getInstance().getWindow().getHandle(), 
+					GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS;
+			boolean altDown = GLFW.glfwGetKey(
+					MinecraftClient.getInstance().getWindow().getHandle(), 
+					GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS;
+			verticalAmount *= (double)this.itemHeight / 2.0 * (ctrlDown ? (altDown ? 160 : 32) : 4.0);
 			this.setScrollY(this.getScrollY() - verticalAmount);
 			return true;
 		}
@@ -243,13 +252,17 @@ public final class ChatLogScreen extends Screen {
 		}
 		
 		@Override
-		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		public boolean keyPressed(KeyInput key) {
 			if (this.highlightenEntryHead == null) {
 				return false;
 			}
 			
-			if (this.highlightenEntryHead != null || keyCode == GLFW.GLFW_KEY_F3) {
-				if (Screen.hasShiftDown()) {
+			
+			if (this.highlightenEntryHead != null || key.key() == GLFW.GLFW_KEY_F3) {
+				boolean shiftDown = GLFW.glfwGetKey(
+						MinecraftClient.getInstance().getWindow().getHandle(), 
+						GLFW.GLFW_KEY_LEFT_SHIFT) == GLFW.GLFW_PRESS;
+				if (shiftDown) {
 					if (!this.highlightenEntryHead.hasPrevious()) {
 						showNoMoreMatchesToast();
 						return true;
@@ -318,12 +331,13 @@ public final class ChatLogScreen extends Screen {
 			}
 
 			@Override
-			public void render(DrawContext ctx, int j, int y, int x, 
-					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
+			public void render(DrawContext ctx, int mouseX, int mouseY, boolean hovered, float deltaTicks) {
+				int x = this.getX();
+				int y = this.getY();
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
 				boolean highlight = this.isFocused();
 				if (highlight) {
-					ctx.drawBorder(x + 4, y - 1, width, 10, 0xFFFFFF00);
+					ctx.drawStrokedRectangle(x + 4, y - 1, this.getWidth(), 10, 0xFFFFFF00);
 				}
 				
 				ctx.drawTextWithShadow(tr, this.line, x + 4, y, 0xFFFFFFFF);
@@ -333,7 +347,7 @@ public final class ChatLogScreen extends Screen {
 				}
 				
 				ctx.fill(x + 1, y + (this.firstLine ? 2 : 0), x + 3, y + 10, this.owner.getMarkColor());
-				if(hovering) {
+				if (hovered) {
 					if(mouseX - x < 4) {
 						String time = this.getFormattedTime();
 						this.renderToolTip(ctx, tr, time, mouseX, mouseY);
@@ -368,16 +382,36 @@ public final class ChatLogScreen extends Screen {
 				return new ArrayList<>();
 			}
 			
+			@SuppressWarnings("deprecation")
+			@Nullable
+			public Style getStyleAt(TextRenderer tr, OrderedText text, int x) {
+				TextHandler.WidthLimitingVisitor widthLimitingVisitor = 
+						tr.getTextHandler().new WidthLimitingVisitor((float)x);
+				MutableObject<Style> mutableObject = new MutableObject<>();
+				text.accept((index, style, codePoint) -> {
+					if (!widthLimitingVisitor.accept(index, style, codePoint)) {
+						mutableObject.setValue(style);
+						return false;
+					} else {
+						return true;
+					}
+				});
+				return mutableObject.getValue();
+			}
+			
 			@Nullable
 			private Text getToolTip(double mouseX, double mouseY) {
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
 				double scale = ChatLogScreen.this.client.getWindow().getScaleFactor();
 				int pos = (int) Math.floor(mouseX - 4 * scale);
-				Style style = tr.getTextHandler().getStyleAt(line, pos);
+				Style style = this.getStyleAt(tr, this.line, pos);
 				if(style != null) {
 					HoverEvent he;
 					boolean hasHoverText = false;
-					if((he = style.getHoverEvent()) != null && !Screen.hasAltDown()) {
+					boolean altDown = GLFW.glfwGetKey(
+							MinecraftClient.getInstance().getWindow().getHandle(), 
+							GLFW.GLFW_KEY_LEFT_ALT) == GLFW.GLFW_PRESS;
+					if((he = style.getHoverEvent()) != null && !altDown) {
 						hasHoverText = true;
 						return TextEventContentExtractor.getHoverEventContent(he);
 					}
@@ -394,16 +428,16 @@ public final class ChatLogScreen extends Screen {
 			}
 			
 			@Override
-			public boolean mouseClicked(double mouseX, double mouseY, int button) {
-				if(Screen.hasControlDown()) {
-					Text tip = this.getToolTip(mouseX, mouseY);
+			public boolean mouseClicked(Click click, boolean doubled) {
+				if (click.hasCtrlOrCmd()) {
+					Text tip = this.getToolTip(click.x(), click.y());
 					if(tip != null) {
 						ChatLogScreen.this.client.keyboard.setClipboard(tip.getString());
 						return true;
 					}
 				}
 				
-				if (Screen.hasShiftDown()) {
+				if (click.hasShift()) {
 					this.isDelimiter ^= true;
 				}
 				

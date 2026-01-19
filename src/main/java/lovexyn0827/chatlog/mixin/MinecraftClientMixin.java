@@ -14,7 +14,7 @@ import net.minecraft.world.level.storage.LevelStorage;
 @Mixin(MinecraftClient.class)
 public abstract class MinecraftClientMixin {
 	@Inject(
-			method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;)V", 
+			method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;Z)V", 
 			at = @At(value = "HEAD")
 	)
 	private void onDisconnected(CallbackInfo ci) {
