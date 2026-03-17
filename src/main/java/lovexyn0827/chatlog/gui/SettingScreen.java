@@ -15,6 +15,7 @@ import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.util.ChatMessages;
 import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
@@ -43,7 +44,6 @@ public final class SettingScreen extends Screen {
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
 		this.renderBackgroundTexture(ctx);
 		super.render(ctx, mouseX, mouseY, delta);
-		this.optionList.render(ctx, mouseX, mouseY, delta);
 	}
 	
 	@Override
@@ -66,10 +66,6 @@ public final class SettingScreen extends Screen {
 			Entry e = new Entry(f);
 			SettingScreen.this.addDrawableChild(e.textField);
 			return this.addEntry(e);
-		}
-
-		@Override
-		public void appendNarrations(NarrationMessageBuilder var1) {
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {
@@ -101,10 +97,17 @@ public final class SettingScreen extends Screen {
 
 			@Override
 			public void render(DrawContext ctx, int i, int y, int x, 
-					int width, int height, int var7, int var8, boolean var9, float var10) {
+					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
 				ctx.drawText(SettingScreen.this.textRenderer, this.name, x, y + 5, 0xFF31F38B, false);
 				this.textField.setY(y);
-				this.textField.render(ctx, var7, var8, var10);
+				this.textField.render(ctx, mouseX, mouseY, var10);
+				if (hovering && mouseX - x < ctx.getScaledWindowWidth() * 0.35) {
+					ctx.drawOrderedTooltip(SettingScreen.this.textRenderer, 
+							ChatMessages.breakRenderedChatMessageLines(
+									Options.getToolTip(this.name.getString()), width / 2, 
+									SettingScreen.this.textRenderer), 
+							mouseX, mouseY);
+				}
 			}
 
 			@Override
@@ -114,9 +117,12 @@ public final class SettingScreen extends Screen {
 
 			@Override
 			public List<? extends Selectable> selectableChildren() {
-				// TODO Auto-generated method stub
 				return new ArrayList<>();
 			}
+		}
+
+		@Override
+		public void appendNarrations(NarrationMessageBuilder builder) {
 		}
 	}
 }

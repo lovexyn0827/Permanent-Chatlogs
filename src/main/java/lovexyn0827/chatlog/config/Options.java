@@ -8,6 +8,8 @@ import java.lang.reflect.Field;
 import java.util.Properties;
 
 import lovexyn0827.chatlog.PermanentChatLogMod;
+import lovexyn0827.chatlog.i18n.I18N;
+import net.minecraft.text.Text;
 
 public final class Options {
 	private static final File OPTION_FILE = new File("permanent-chatlogs.prop");
@@ -18,6 +20,12 @@ public final class Options {
 	
 	@Option(type = OptionType.INTEGER, defaultValue = "100000")
 	public static int autoSaveIntervalInMs = 100000;
+	
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean realtimeChatlogSaving = true;
+
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean allowCorruptedChatlogs = true;
 	
 	private Options() {}
 	
@@ -41,6 +49,10 @@ public final class Options {
 		}
 		
 		save();
+	}
+	
+	public static Text getToolTip(String option) {
+		return I18N.translateAsText("opt." + option + ".desc");
 	}
 	
 	static {

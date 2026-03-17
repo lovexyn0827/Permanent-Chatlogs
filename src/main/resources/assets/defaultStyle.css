@@ -1,0 +1,41 @@
+body {
+	background: #1F1F1F;
+	color: #FFFFFF;
+	font-family: "Mojangles", "Unifont";
+	font-size: 133.333333%;
+}
+
+.message {
+	display: flex;
+}
+
+.msg_marker {
+	min-width: 10px;
+	max-width: 10px;
+	margin: 1px;
+}
+
+.tooltip {
+	border: thick ridge #0F002F;
+	border-radius: 4px;
+	max-width: 50%;
+	background: #000000;
+	padding: 24px;
+	margin: 6px;
+	color: #FFFFFF;
+	position: absolute;
+	font-style: normal;
+	font-weight: normal;
+}
+
+.footer {
+	margin: 16px;
+	text-align: center;
+	font-size: 75%;
+	color: #FFFFFF;
+	font-style: italic;
+}
+
+a {
+	color: #FFC000
+}

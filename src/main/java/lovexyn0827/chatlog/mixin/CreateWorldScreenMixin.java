@@ -18,6 +18,6 @@ public class CreateWorldScreenMixin {
 	
 	@Inject(method = "createLevelInfo", at = @At("HEAD"))
 	private void onLevelCreation(boolean bl, CallbackInfoReturnable<LevelInfo> cir) {
-		Session.current = new Session(this.worldCreator.getWorldName().trim());
+		Session.current = new Session(this.worldCreator.getWorldName().trim(), false);
 	}
 }

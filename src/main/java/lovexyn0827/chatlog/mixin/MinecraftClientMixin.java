@@ -19,15 +19,12 @@ public abstract class MinecraftClientMixin {
 			at = @At(value = "HEAD"))
 	private void onDisconnected(CallbackInfo ci) {
 		if(Session.current != null && Session.current.shouldSaveOnDisconnection) {
-			Session.current.saveAll();
+			Session.current.end();
 			Session.current = null;
 		}
 	}
 	
 	@Inject(method = "tick", at = @At("RETURN"))
 	private void onTicked(CallbackInfo ci) {
-		if(this.paused && Session.current != null) {
-			Session.current.autoSave();
-		}
 	}
 }
