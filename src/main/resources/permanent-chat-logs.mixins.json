@@ -15,7 +15,8 @@
 		"HoverEventActionMixin", 
 		"KeyboardMixin", 
 		"TextFieldWidgetAccessor", 
-		"GameMenuScreenMixin"
+		"GameMenuScreenMixin", 
+		"InGameHudMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

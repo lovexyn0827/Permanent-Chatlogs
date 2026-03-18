@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import io.netty.util.internal.StringUtil;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lovexyn0827.chatlog.config.Options;
+import lovexyn0827.chatlog.session.Session.Title;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
@@ -125,6 +126,21 @@ public class SessionRecorder {
 		this.messageCount++;
 	}
 
+	public void addOverlayMessage(Text message, boolean tinted, long time) {
+		this.cachedChatLogs.add(new Title(message, time, Title.Type.OVERLAY));
+		this.messageCount++;
+	}
+
+	public void addTitle(Text message, long time) {
+		this.cachedChatLogs.add(new Title(message, time, Title.Type.TITLE));
+		this.messageCount++;
+	}
+
+	public void addSubtitle(Text message, long time) {
+		this.cachedChatLogs.add(new Title(message, time, Title.Type.SUBTITLE));
+		this.messageCount++;
+	}
+
 	public int getId() {
 		return this.id;
 	}
@@ -203,6 +219,8 @@ public class SessionRecorder {
 				return 'E';
 			} else if (l instanceof Session.WorldIndicator) {
 				return 'W';
+			} else if (l instanceof Session.Title) {
+				return 'T';
 			} else {
 				return 'M';
 			}

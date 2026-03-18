@@ -395,6 +395,49 @@ public final class Session {
 		}
 	}
 	
+	public static final class Title extends Line {
+		private final Type type;
+
+		public Title(Text title, long time, Title.Type type) {
+			super(Util.NIL_UUID, title, time);
+			this.type = type;
+		}
+		
+		@Override
+		public int getMarkColor() {
+			return 0xFF000000 | this.type.color;
+		}
+
+		static Line parseTitle(String json) {
+			@SuppressWarnings("deprecation")
+			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
+			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString()), 
+					jo.get("time").getAsLong(), 
+					Type.valueOf(jo.get("type").getAsString()));
+		}
+		
+		@Override
+		JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
+			json.addProperty("time", this.time);
+			json.addProperty("type", this.type.name());
+			return json;
+		}
+		
+		public enum Type {
+			TITLE(0x000000), 
+			SUBTITLE(0x9F9F9F), 
+			OVERLAY(0xFFFFFF);
+			
+			private final int color;
+
+			private Type(int color) {
+				this.color = color;
+			}
+		}
+	}
+	
 	public static class WorldIndicator extends Line {
 		private final boolean multiplayer;
 		private final String saveName;
@@ -686,6 +729,11 @@ public final class Session {
 									lines.add(WorldIndicator.parse(l.substring(1)));
 								});
 								break;
+							case 'T':
+								SessionUtils.wrapTextSerialization(() -> {
+									lines.add(Title.parseTitle(l.substring(1)));
+								});
+								break;
 							}
 						} catch (EOFException | MalformedJsonException | JsonSyntaxException e) {
 							e.printStackTrace();
@@ -719,7 +767,7 @@ public final class Session {
 					int msgCnt = 0;
 					while(s.hasNextLine()) {
 						String l = s.nextLine();
-						if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
+						if (l.charAt(0) == 'M' || l.charAt(0) == 'E'  || l.charAt(0) == 'T') {
 							msgCnt++;
 						}
 					}

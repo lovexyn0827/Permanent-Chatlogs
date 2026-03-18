@@ -14,7 +14,6 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ConfirmScreen;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.client.gui.widget.AlwaysSelectedEntryListWidget;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.screen.ScreenTexts;
@@ -146,7 +145,7 @@ public final class SessionListScreen extends Screen {
 		
 		public SessionList(MinecraftClient mc) {
 			super(mc, SessionListScreen.this.width, 
-					SessionListScreen.this.height - (SessionListScreen.this.enablePaging ? 84 : 61), 50, 32);
+					SessionListScreen.this.height - (SessionListScreen.this.enablePaging ? 104 : 81), 50, 32);
 			this.toPage(0);
 		}
 		
