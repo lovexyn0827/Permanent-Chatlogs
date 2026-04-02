@@ -415,7 +415,7 @@ public final class Session {
 		static Line parseTitle(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
-			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString()), 
+			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString(), null),
 					jo.get("time").getAsLong(), 
 					Type.valueOf(jo.get("type").getAsString()));
 		}
@@ -423,7 +423,7 @@ public final class Session {
 		@Override
 		JsonObject toJson() {
 			JsonObject json = new JsonObject();
-			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message));
+			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message, null));
 			json.addProperty("time", this.time);
 			json.addProperty("type", this.type.name());
 			return json;

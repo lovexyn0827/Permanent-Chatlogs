@@ -1,5 +1,6 @@
 package lovexyn0827.chatlog.mixin;
 
+import lovexyn0827.chatlog.session.Session;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.MessageIndicator;
 import net.minecraft.network.message.MessageSignatureData;
@@ -43,8 +44,8 @@ public class ChatHudMixin {
 	@Inject(method = "addMessage(Lnet/minecraft/text/Text;Lnet/minecraft/network/message/MessageSignatureData;"
 			+ "Lnet/minecraft/client/gui/hud/MessageIndicator;)V", at = @At("HEAD"))
 	private void onMessage(Text message, @Nullable MessageSignatureData signature, @Nullable MessageIndicator indicator, CallbackInfo info) {
-		if(Session.current != null && SHOULD_ADD_MESSAGE.getAsBoolean()) {
-			Session.current.onMessage(Util.NIL_UUID, message);
+		if(SessionRecorder.current() != null && SHOULD_ADD_MESSAGE.getAsBoolean()) {
+			SessionRecorder.current().onMessage(Util.NIL_UUID, message);
 		}
 	}
 }

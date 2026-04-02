@@ -88,10 +88,10 @@ public class FullTextSearchResultScreen extends Screen {
 			return this.width;
 		}
 		
-		@Override
-		public int getScrollbarPositionX() {
-			return FullTextSearchResultScreen.this.width / 2 - 10;
-		}
+		//@Override
+		//public int getScrollbarPositionX() {
+		//	return FullTextSearchResultScreen.this.width / 2 - 10;
+		//}
 
 		private class Entry extends AlwaysSelectedEntryListWidget.Entry<Entry> {
 			protected final Session.Summary summary;
@@ -164,10 +164,10 @@ public class FullTextSearchResultScreen extends Screen {
 			return this.width;
 		}
 		
-		@Override
-		public int getScrollbarPositionX() {
-			return (int) (FullTextSearchResultScreen.this.width * 0.88);
-		}
+		//@Override
+		//public int getScrollbarPositionX() {
+		//	return (int) (FullTextSearchResultScreen.this.width * 0.88);
+		//}
 		
 		public void setSession(Session.Summary summary, List<Pair<Integer, Session.Line>> lines) {
 			this.currentSessionSummary = summary;
