@@ -5,15 +5,18 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import com.google.common.collect.ImmutableList;
 
-import lovexyn0827.chatlog.Session;
-import lovexyn0827.chatlog.Session.Line;
+import lovexyn0827.chatlog.config.Options;
 import lovexyn0827.chatlog.i18n.I18N;
+import lovexyn0827.chatlog.session.Session;
+import lovexyn0827.chatlog.session.Session.Line;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -40,11 +43,13 @@ public final class ChatLogScreen extends Screen {
 	private ChatLogWidget chatlogs;
 	private SearchFieldWidget searchField;
 	private CyclingButtonWidget<SearchingMode> searchBarModeChooser;
+	private final Screen parent;
 	
-	protected ChatLogScreen(Session.Summary metadata, Session session) {
+	protected ChatLogScreen(Session.Summary metadata, Session session, Screen parent) {
 		super(Text.literal(metadata.saveName));
 		this.session = session;
 		this.timeZone = metadata.timeZone.toZoneId();
+		this.parent = parent;
 	}
 
 	@Override
@@ -59,7 +64,7 @@ public final class ChatLogScreen extends Screen {
 				.values(SearchingMode.values())
 				.initially(SearchingMode.TEXT)
 				.build(2, 0, (int) (this.client.getWindow().getScaledWidth() * 0.2F) - 4, 20, 
-						ScreenTexts.EMPTY, (b, v) -> this.chatlogs.filter(this.searchField.getText()));
+						ScreenTexts.EMPTY, (b, v) -> this.chatlogs.search(this.searchField.getText()));
 		ButtonWidget extractBtn = ButtonWidget.builder(I18N.translateAsText("gui.extract"), 
 				(btn) -> {
 					List<Session.Line> delims = this.chatlogs.collectDelimiters();
@@ -105,6 +110,10 @@ public final class ChatLogScreen extends Screen {
 		this.addDrawableChild(extractBtn);
 	}
 	
+	void scrollTo(int ordinalInSession) {
+		this.chatlogs.scrollTo(ordinalInSession);
+	}
+	
 	private void saveExtractedSession(Session s) {
 		s.save();
 	}
@@ -118,17 +127,24 @@ public final class ChatLogScreen extends Screen {
 	}
 	
 	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		this.chatlogs.keyPressed(keyCode, scanCode, modifiers);
+		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+	
+	@Override
 	public void close() {
-		this.client.setScreen(new SessionListScreen());
+		this.client.setScreen(this.parent);
 	}
 	
 	private final class ChatLogWidget extends ElementListWidget<ChatLogWidget.Entry> {
 		private final List<Entry> allEntries;
+		private ListIterator<Entry> highlightenEntryHead = null;
 		
 		public ChatLogWidget(MinecraftClient client, Session session) {
 			super(client, ChatLogScreen.this.client.getWindow().getScaledWidth(), 
 					ChatLogScreen.this.height - 40, 20, client.textRenderer.fontHeight + 1);
-			session.getAllMessages().forEach((l) -> {
+			session.getMessages().forEach((l) -> {
 				boolean[] firstLine = new boolean[] { true };
 				ChatMessages.breakRenderedChatMessageLines(l.message, 
 						ChatLogScreen.this.client.getWindow().getScaledWidth() - 14, 
@@ -166,8 +182,24 @@ public final class ChatLogScreen extends Screen {
 			return true;
 		}
 		
-		protected void filter(String in) {
-			this.replaceEntries(this.allEntries.stream()
+		protected void search(String key) {
+			if (key.isEmpty() && !ChatLogScreen.this.searchBarModeChooser.getValue().natuallyRestrictive) {
+				// Not searching, reverting any changes to the ChatLogWidget
+				this.highlightenEntryHead = null;
+				this.replaceEntries(this.allEntries);
+				this.setFocused(null);
+				return;
+			}
+			
+			if (Options.messageFinderFilteringMode) {
+				this.filter(key);
+			} else {
+				this.highlightSelected(key);
+			}
+		}
+		
+		private List<Entry> getMatchingMessages(String in) {
+			return this.allEntries.stream()
 					.filter((e) -> {
 						switch (ChatLogScreen.this.searchBarModeChooser.getValue()) {
 						case TEXT:
@@ -178,16 +210,89 @@ public final class ChatLogScreen extends Screen {
 							return true;	// TODO
 						case EVENT:
 							return e.owner instanceof Session.Event && e.lineStr.contains(in);
+						case SAVE_INDICATOR:
+							return e.owner instanceof Session.WorldIndicator && e.lineStr.contains(in);
 						default:
 							return true;
 						}
 					})
-					.collect(ArrayList::new, ArrayList::add, ArrayList::addAll));
+					.collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+		}
+		
+		private void filter(String in) {
+			this.replaceEntries(this.getMatchingMessages(in));
 			this.setScrollAmount(0);
+		}
+		
+		private void highlightSelected(String in) {
+			List<Entry> selected = this.getMatchingMessages(in);
+			if (selected.isEmpty()) {
+				this.highlightenEntryHead = null;
+				this.setFocused(null);
+				return;
+			}
+			
+			this.highlightenEntryHead = selected.listIterator();
+			this.setFocused(selected.get(0));
+			this.centerScrollOn(selected.get(0));
+		}
+		
+		private static void showNoMoreMatchesToast() {
+			SystemToast warning = new SystemToast(new SystemToast.Type(), 
+					I18N.translateAsText("gui.search.nomore"), 
+					I18N.translateAsText("gui.search.nomore.desc"));
+			MinecraftClient.getInstance().getToastManager().add(warning);
+		}
+		
+		@Override
+		public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+			if (this.highlightenEntryHead == null) {
+				return false;
+			}
+			
+			if (this.highlightenEntryHead != null || keyCode == GLFW.GLFW_KEY_F3) {
+				if (Screen.hasShiftDown()) {
+					if (!this.highlightenEntryHead.hasPrevious()) {
+						showNoMoreMatchesToast();
+						return true;
+					}
+					
+					Entry prev = this.highlightenEntryHead.previous();
+					this.setFocused(prev);
+					this.centerScrollOn(prev);
+				} else {
+					if (!this.highlightenEntryHead.hasNext()) {
+						showNoMoreMatchesToast();
+						return true;
+					}
+
+					Entry next = this.highlightenEntryHead.next();
+					this.setFocused(next);
+					this.centerScrollOn(next);
+				}
+			}
+			
+			return true;
+		}
+		
+		void scrollTo(int ordinalInSession) {
+			Session.Line prev = null;
+			int curOrd = -1;
+			for (Entry e : this.allEntries) {
+				if (e.owner != prev) {
+					prev = e.owner;
+					curOrd++;
+				}
+				
+				if (curOrd == ordinalInSession) {
+					this.centerScrollOn(e);
+					return;
+				}
+			}
 		}
 
 		private final class Entry extends ElementListWidget.Entry<Entry> {
-			private final Session.Line owner;
+			protected final Session.Line owner;
 			private final OrderedText line;
 			private final String lineStr;
 			private final long time;
@@ -218,6 +323,11 @@ public final class ChatLogScreen extends Screen {
 			public void render(DrawContext ctx, int j, int y, int x, 
 					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
 				TextRenderer tr = ChatLogScreen.this.textRenderer;
+				boolean highlight = this.isFocused();
+				if (highlight) {
+					ctx.drawBorder(x + 4, y - 1, width, 10, 0xFFFFFF00);
+				}
+				
 				ctx.drawTextWithShadow(tr, this.line, x + 4, y, 0xFFFFFFFF);
 				if (this.isDelimiter) {
 					int textWidth = ChatLogScreen.this.client.getWindow().getScaledWidth() - 14;
@@ -313,15 +423,25 @@ public final class ChatLogScreen extends Screen {
 					(int) (ChatLogScreen.this.client.getWindow().getScaledWidth() * 0.6F), 16, 
 					I18N.translateAsText("gui.search")
 			);
-			this.setChangedListener(ChatLogScreen.this.chatlogs::filter);
+			this.setChangedListener(ChatLogScreen.this.chatlogs::search);
 		}
 	}
 	
 	private enum SearchingMode {
-		TEXT, 
-		TIME, 
-		SENDER, 
-		EVENT;
+		TEXT(false), 
+		TIME(false), 
+		SENDER(false), 
+		EVENT(true), 
+		SAVE_INDICATOR(true);
+		
+		/**
+		 * Whether this mode can select lines without given keywords, or can work searching bar empty.
+		 */
+		protected final boolean natuallyRestrictive;
+		
+		private SearchingMode(boolean natuallyRestrictive) {
+			this.natuallyRestrictive = natuallyRestrictive;
+		}
 		
 		protected Text displayedText() {
 			return I18N.translateAsText("gui.search.mode." + this.name().toLowerCase());

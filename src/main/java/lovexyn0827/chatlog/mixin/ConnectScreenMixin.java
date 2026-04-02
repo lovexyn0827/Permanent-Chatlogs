@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import lovexyn0827.chatlog.Session;
+import lovexyn0827.chatlog.session.SessionRecorder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.multiplayer.ConnectScreen;
 import net.minecraft.client.network.CookieStorage;
@@ -18,7 +18,7 @@ public class ConnectScreenMixin {
 			+ "Lnet/minecraft/client/network/ServerInfo;Lnet/minecraft/client/network/CookieStorage;)V", at = @At("HEAD"))
 	private void onConnect(MinecraftClient mc, ServerAddress addr, ServerInfo info, CookieStorage cs, CallbackInfo ci) {
 		if (info != null) {
-			Session.current = new Session(info.name, true);
+			SessionRecorder.start(info.name, true);
 		}
 	}
 }

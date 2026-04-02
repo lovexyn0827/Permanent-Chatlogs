@@ -2,8 +2,9 @@ package lovexyn0827.chatlog.gui;
 
 import com.google.common.collect.Lists;
 
-import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.i18n.I18N;
+import lovexyn0827.chatlog.session.Session;
+import lovexyn0827.chatlog.session.SessionRecorder;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -51,8 +52,8 @@ public class NewEventMarkerScreen extends Screen {
 			DyeColor color = this.color.getValue();
 			Text title = Text.literal(name);
 			Session.Event event = new Session.Event(title, System.currentTimeMillis(), color.getSignColor());
-			if (Session.current != null) {
-				Session.current.addEvent(event);
+			if (SessionRecorder.current() != null) {
+				SessionRecorder.current().addEvent(event);
 			}
 			
 			mc.inGameHud.setOverlayMessage(title, true);
