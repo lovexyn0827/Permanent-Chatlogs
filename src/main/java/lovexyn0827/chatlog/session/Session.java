@@ -44,9 +44,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lovexyn0827.chatlog.config.Options;
 import lovexyn0827.chatlog.i18n.I18N;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Util;
@@ -415,7 +413,7 @@ public final class Session {
 		static Line parseTitle(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
-			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString(), null),
+			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString(), DynamicRegistryManager.EMPTY),
 					jo.get("time").getAsLong(), 
 					Type.valueOf(jo.get("type").getAsString()));
 		}
@@ -423,7 +421,7 @@ public final class Session {
 		@Override
 		JsonObject toJson() {
 			JsonObject json = new JsonObject();
-			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message, null));
+			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
 			json.addProperty("time", this.time);
 			json.addProperty("type", this.type.name());
 			return json;
