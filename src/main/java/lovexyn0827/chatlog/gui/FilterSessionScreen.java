@@ -204,7 +204,6 @@ public final class FilterSessionScreen extends Screen {
 		this.contents.render(ctx, mouseY, width, height);
 		this.caseSenstive.render(ctx, mouseX, mouseY, delta);
 		this.scopeBtn.render(ctx, mouseX, mouseY, delta);
-		super.render(ctx, mouseX, mouseY, delta);
 	}
 	
 	private static enum Scope implements Predicate<Session.Summary> {

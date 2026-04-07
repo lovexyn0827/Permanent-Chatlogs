@@ -117,7 +117,7 @@ public final class SessionListScreen extends Screen {
 	
 	@Override
 	public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-		this.renderBackground(ctx, mouseY, mouseY, delta);
+		super.render(ctx, mouseX, mouseY, delta);
         ctx.drawCenteredTextWithShadow(
                 this.client.textRenderer,
                 this.title,
@@ -126,7 +126,7 @@ public final class SessionListScreen extends Screen {
                 0xFFFFFF
         );
 		this.displayedSessions.render(ctx, mouseX, mouseY, delta);
-		super.render(ctx, mouseX, mouseY, delta);
+
 	}
 
     @Override
