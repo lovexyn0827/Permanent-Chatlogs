@@ -15,14 +15,15 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import lovexyn0827.chatlog.Session;
-import lovexyn0827.chatlog.Session.Summary;
 import lovexyn0827.chatlog.i18n.I18N;
 import lovexyn0827.chatlog.mixin.TextFieldWidgetAccessor;
+import lovexyn0827.chatlog.session.Session;
+import lovexyn0827.chatlog.session.Session.Summary;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.CyclingButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.predicate.NumberRange.IntRange;
@@ -31,16 +32,20 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
 public final class FilterSessionScreen extends Screen {
+    private final Screen parent;
 	private final List<Session.Summary> cachedSessions = Session.getSessionSummaries();
 	private Predicate<Session.Summary> filterer;
 	private TextFieldWidget saveName;
 	private TextFieldWidget date;
 	private TextFieldWidget size;
 	private TextFieldWidget seconds;
+	private TextFieldWidget contents;
+	private CheckboxWidget caseSenstive;
 	private CyclingButtonWidget<Scope> scopeBtn;
 	
-	protected FilterSessionScreen() {
+	protected FilterSessionScreen(Screen parent) {
 		super(I18N.translateAsText("gui.filter.sessions"));
+        this.parent = parent;
 	}
 
 	@Override
@@ -104,8 +109,13 @@ public final class FilterSessionScreen extends Screen {
 		} catch (CommandSyntaxException e) {
 		}
 		
-		this.filterer = this.filterer.and((s) -> this.scopeBtn.getValue().test(s));
-		this.client.setScreen(new SessionListScreen(this.filterer));
+		if (!this.contents.getText().isEmpty()) {
+			this.client.setScreen(new FullTextSearchProgressScreen(
+					this.parent, this.filterer, this.contents.getText(), this.caseSenstive.isChecked()));
+		} else {
+			this.filterer = this.filterer.and((s) -> this.scopeBtn.getValue().test(s));
+			this.client.setScreen(new SessionListScreen(this.parent,this.filterer));
+		}
 	}
 	
 	@Override
@@ -142,18 +152,28 @@ public final class FilterSessionScreen extends Screen {
 				(int) (width * 0.35F), (int) (height * 0.25F) + 54, 
 				(int) (width * 0.4F), 14, 
 				I18N.translateAsText("gui.filter.seconds"));
+		this.contents = new TextFieldWidget(this.textRenderer, 
+				(int) (width * 0.35F), (int) (height * 0.25F) + 72, 
+				(int) (width * 0.4F), 14, 
+				I18N.translateAsText("gui.filter.fulltext"));
+		this.caseSenstive = CheckboxWidget.builder(Text.empty(), this.textRenderer)
+				.checked(false)
+				.pos((int) (width * 0.75F) - 18, (int) (height * 0.25F) + 90)
+				.build();
 		this.scopeBtn = CyclingButtonWidget.builder(Scope::getText)
 				.values(Scope.values())
 				.initially(Scope.ALL)
-				.build((int) (width * 0.35F), (int) (height * 0.25F) + 72, (int) (width * 0.4F), 20, 
+				.build((int) (width * 0.35F), (int) (height * 0.25F) + 108, (int) (width * 0.4F), 20, 
 						Text.translatable("advMode.type"));
 		this.addDrawableChild(this.saveName);
 		this.addDrawableChild(this.date);
 		this.addDrawableChild(this.size);
 		this.addDrawableChild(this.seconds);
+		this.addDrawableChild(this.contents);
+		this.addDrawableChild(this.caseSenstive);
 		this.addDrawableChild(this.scopeBtn);
 		this.addDrawableChild(ButtonWidget.builder(ScreenTexts.DONE, (btn) -> this.close())
-				.dimensions(width / 2 - 40, (int) (height * 0.25F) + 96, 80, 20)
+				.dimensions(width / 2 - 40, (int) (height * 0.25F) + 132, 80, 20)
 				.build());
 
 	}
@@ -171,12 +191,19 @@ public final class FilterSessionScreen extends Screen {
 				(int) (width * 0.27F), (int) (height * 0.25F) + 38, 0xFFFFFFFF);
 		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.seconds"), 
 				(int) (width * 0.27F), (int) (height * 0.25F) + 56, 0xFFFFFFFF);
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.fulltext"), 
+				(int) (width * 0.27F), (int) (height * 0.25F) + 74, 0xFFFFFFFF);
+		ctx.drawCenteredTextWithShadow(this.textRenderer, I18N.translateAsText("gui.filter.case"), 
+				(int) (width * 0.27F), (int) (height * 0.25F) + 92, 0xFFFFFFFF);
 		ctx.drawCenteredTextWithShadow(this.textRenderer, Text.translatable("advMode.type"), 
-				(int) (width * 0.27F), (int) (height * 0.25F) + 77, 0xFFFFFFFF);
+				(int) (width * 0.27F), (int) (height * 0.25F) + 113, 0xFFFFFFFF);
 		this.saveName.render(ctx, mouseX, mouseY, height);
 		this.date.render(ctx, mouseX, mouseY, height);
 		this.size.render(ctx, mouseX, mouseY, height);
 		this.seconds.render(ctx, mouseX, mouseY, height);
+		this.contents.render(ctx, mouseY, width, height);
+		this.caseSenstive.render(ctx, mouseX, mouseY, delta);
+		this.scopeBtn.render(ctx, mouseX, mouseY, delta);
 	}
 	
 	private static enum Scope implements Predicate<Session.Summary> {

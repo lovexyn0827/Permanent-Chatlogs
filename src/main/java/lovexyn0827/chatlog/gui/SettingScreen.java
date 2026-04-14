@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import lovexyn0827.chatlog.config.Option;
+import lovexyn0827.chatlog.config.OptionType;
 import lovexyn0827.chatlog.config.Options;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -12,6 +13,7 @@ import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.Selectable;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
+import net.minecraft.client.gui.widget.CheckboxWidget;
 import net.minecraft.client.gui.widget.ElementListWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
@@ -19,10 +21,12 @@ import net.minecraft.client.util.ChatMessages;
 import net.minecraft.text.Text;
 
 public final class SettingScreen extends Screen {
+    private final Screen parent;
 	private OptionListWidget optionList;
 	
-	protected SettingScreen() {
+	protected SettingScreen(Screen parent) {
 		super(Text.literal("Settings"));
+        this.parent = parent;
 	}
 
 	@Override
@@ -48,7 +52,7 @@ public final class SettingScreen extends Screen {
 	
 	@Override
 	public void close() {
-		this.client.setScreen(new SessionListScreen());
+		this.client.setScreen(this.parent);
 	}
 	
 	private final class OptionListWidget extends EntryListWidget<OptionListWidget.Entry> {
@@ -62,45 +66,30 @@ public final class SettingScreen extends Screen {
 		}
 		
 		protected int addOption(Field f) {
-			Entry e = new Entry(f);
-			SettingScreen.this.addDrawableChild(e.textField);
-			return this.addEntry(e);
+			if (f.getAnnotationsByType(Option.class)[0].type() == OptionType.BOOLEAN) {
+				return this.addEntry(new BooleanEntry(f));
+			} else {
+				return this.addEntry(new TextEntry(f));
+			}
 		}
 
-		private final class Entry extends ElementListWidget.Entry<Entry> {
-			private final Text name;
-			protected final TextFieldWidget textField;
+		@Override
+		protected void appendClickableNarrations(NarrationMessageBuilder var1) {
+		}
+		
+		private class Entry extends ElementListWidget.Entry<Entry> {
+			protected final Text name;
 			
 			protected Entry(Field f) {
 				this.name = Text.literal(f.getName());
-				int width = SettingScreen.this.client.getWindow().getScaledWidth();
-				this.textField = new TextFieldWidget(SettingScreen.this.textRenderer, 
-						(int) (width * 0.35), 1, 
-						(int) (width * 0.5), 14, this.name) {
-					@Override
-					public void setFocused(boolean focused) {
-						super.setFocused(focused);
-						Options.set(Entry.this.name.getString(), this.getText());
-					}
-				};
-				try {
-					this.textField.setText(f.get(null).toString());
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					e.printStackTrace();
-				}
-				
-				this.textField.setChangedListener((s) -> {
-					Options.set(Entry.this.name.getString(), s);
-				});
 			}
-
+			
 			@Override
 			public void render(DrawContext ctx, int i, int y, int x, 
 					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
-				ctx.drawText(SettingScreen.this.textRenderer, this.name, x, y + 5, 0xFF31F38B, false);
-				this.textField.setY(y);
-				this.textField.render(ctx, mouseX, mouseY, var10);
-				if (hovering && mouseX - x < ctx.getScaledWindowWidth() * 0.35) {
+				int xOffset = ((int) (width * 0.25));
+				ctx.drawText(SettingScreen.this.textRenderer, this.name, xOffset, y + 5, 0xFF31F38B, false);
+				if (hovering && mouseX < ctx.getScaledWindowWidth() * 0.5) {
 					ctx.drawOrderedTooltip(SettingScreen.this.textRenderer, 
 							ChatMessages.breakRenderedChatMessageLines(
 									Options.getToolTip(this.name.getString()), width / 2, 
@@ -119,9 +108,68 @@ public final class SettingScreen extends Screen {
 				return new ArrayList<>();
 			}
 		}
-
-		@Override
-		protected void appendClickableNarrations(NarrationMessageBuilder var1) {
+		
+		private class TextEntry extends Entry {
+			private final TextFieldWidget valueSelector;
+			
+			protected TextEntry(Field f) {
+				super(f);
+				int width = SettingScreen.this.client.getWindow().getScaledWidth();
+				this.valueSelector = new TextFieldWidget(SettingScreen.this.textRenderer, 
+						(int) (width * 0.55), 1, 
+						(int) (width * 0.20), 14, this.name);
+				try {
+					this.valueSelector.setText(f.get(null).toString());
+				} catch (IllegalArgumentException | IllegalAccessException e) {
+					e.printStackTrace();
+					throw new RuntimeException(e);
+				}
+				
+				this.valueSelector.setChangedListener((s) -> {
+					Options.set(this.name.getString(), s);
+				});
+				SettingScreen.this.addDrawableChild(this.valueSelector);
+			}
+			
+			@Override
+			public void render(DrawContext ctx, int i, int y, int x, 
+					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
+				super.render(ctx, i, y, x, width, height, mouseX, mouseY, hovering, var10);
+				this.valueSelector.setY(y);
+				this.valueSelector.render(ctx, mouseX, mouseY, var10);
+			}
+		}
+		
+		private class BooleanEntry extends Entry {
+			private final CheckboxWidget valueSelector;
+			
+			protected BooleanEntry(Field f) {
+				super(f);
+				boolean toggled;
+				try {
+					toggled = Boolean.valueOf(f.get(null).toString());
+				} catch (IllegalArgumentException | IllegalAccessException e) {
+					e.printStackTrace();
+					throw new RuntimeException(e);
+				}
+				
+				this.valueSelector = CheckboxWidget.builder(Text.empty(), SettingScreen.this.textRenderer)
+						.pos((int) (width * 0.75) - 16, 1)
+						.checked(toggled)
+						.callback((widget, checked) -> {
+							Options.set(BooleanEntry.this.name.getString(), Boolean.toString(checked));
+						})
+						.build();
+				SettingScreen.this.addDrawableChild(this.valueSelector);
+			}
+			
+			@Override
+			public void render(DrawContext ctx, int i, int y, int x, 
+					int width, int height, int mouseX, int mouseY, boolean hovering, float var10) {
+				super.render(ctx, i, y, x, width, height, mouseX, mouseY, hovering, var10);
+				this.valueSelector.setY(y);
+				this.valueSelector.render(ctx, mouseX, mouseY, var10);
+			}
 		}
 	}
 }

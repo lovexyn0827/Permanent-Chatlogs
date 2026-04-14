@@ -1,18 +1,16 @@
-package lovexyn0827.chatlog;
+package lovexyn0827.chatlog.session;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
@@ -23,16 +21,12 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,19 +44,15 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import lovexyn0827.chatlog.config.Options;
 import lovexyn0827.chatlog.i18n.I18N;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.world.WorldListWidget;
-import net.minecraft.client.toast.SystemToast;
 import net.minecraft.text.Text;
-import net.minecraft.text.TextVisitFactory;
 import net.minecraft.util.Util;
 
 // TODO Merge & Auto merge
 public final class Session {
-	private static final Logger LOGGER = LogManager.getLogger("ChatlogSession");
-	private static final File CHATLOG_FOLDER = Util.make(() -> {
+	static final Logger LOGGER = LogManager.getLogger("ChatlogSession");
+	static final File CHATLOG_FOLDER = Util.make(() -> {
 		File f = new File("chatlogs");
 		boolean success;
 		l: 
@@ -95,116 +85,28 @@ public final class Session {
 			throw new RuntimeException("Unable to create directory for chat logs.");
 		}
 	});
-	private static final File INDEX = new File(CHATLOG_FOLDER, "index.ssv");
+	static final File INDEX = new File(CHATLOG_FOLDER, "index.ssv");
 	private static final File INDEX_BACKUP = new File(CHATLOG_FOLDER, "index.bak");
-	private static final File UNSAVED_MARKER = new File(CHATLOG_FOLDER, "unsaved.marker");
-	public static Session current;
-	private Deque<Line> cachedChatLogs;
+	private final Deque<Line> messages;
 	private final LinkedHashMap<UUID, String> uuidToName;
-	private final String saveName;
-	private final int id;
-	private final long startTime;
-	private long endTime;
-	public boolean shouldSaveOnDisconnection = false;
-	private final TimeZone timeZone;
-	private volatile boolean finalSaving = false;
-	private long messageCount = 0;
-	private final Thread autosaveWorker;
-	private final Version version;
-	public final boolean multiplayer;
+	private final Summary metadata;
 	
-	// Create a new instance to record a session
-	public Session(String saveName, boolean multiplayer) {
-		this.cachedChatLogs = new ConcurrentLinkedDeque<>();
-		this.uuidToName = new LinkedHashMap<>();
-		this.id = allocateId();
-		this.saveName = saveName;
-		this.startTime = System.currentTimeMillis();
-		this.endTime = this.startTime;
-		this.timeZone = TimeZone.getDefault();
-		this.autosaveWorker = new AutosaveWorker();
-		this.autosaveWorker.start();
-		this.version = Version.LATEST;
-		this.multiplayer = multiplayer;
-		markUnsaved(id2File(this.id));
-	}
-	
-	private static void markUnsaved(File unsaved) {
-		if (unsaved != null) {
-			try (FileWriter fw = new FileWriter(UNSAVED_MARKER)) {
-				fw.append(unsaved.getAbsolutePath());
-			} catch (IOException e) {
-				LOGGER.warn("Unable to create unsaved marker!");
-				e.printStackTrace();
-			}
-		} else {
-			UNSAVED_MARKER.delete();
-		}
-	}
-	
-	private static File getUnsaved() {
-		try (Scanner s = new Scanner(new FileReader(UNSAVED_MARKER))) {
-			return new File(s.nextLine());
-		} catch (IOException e) {
-			return null;
-		}
-	}
-
-	private Session(ArrayDeque<Line> chatLogs, LinkedHashMap<UUID, String> uuidToName, String saveName, int id,
-			long startTime, long endTime, TimeZone timeZone, boolean multiplayer, Version ver) {
-		this.cachedChatLogs = chatLogs;
+	private Session(ArrayDeque<Line> messages, LinkedHashMap<UUID, String> uuidToName, Summary metadata) {
+		this.messages = messages;
 		this.uuidToName = uuidToName;
-		this.saveName = saveName;
-		this.id = id;
-		this.startTime = startTime;
-		this.endTime = endTime;
-		this.timeZone = timeZone;
-		this.autosaveWorker = null;
-		this.version = ver;
-		this.multiplayer = multiplayer;
-	}
-	
-	private static void wrapTextSerialization(RunnableWithIOException task) throws IOException {
-		try {
-			PermanentChatLogMod.PERMISSIVE_EVENTS.set(true);
-			task.run();
-		} finally {
-			PermanentChatLogMod.PERMISSIVE_EVENTS.set(false);
-		}
+		this.metadata = metadata;
 	}
 
-	public void onMessage(UUID sender, Text msg) {
-		// TODO Limit memory usage
-		long timestamp = Util.getEpochTimeMs();
-		this.cachedChatLogs.addLast(new Line(sender, msg, timestamp));
-		this.uuidToName.computeIfAbsent(sender, (uuid) -> {
-			// Naive solution?
-			String string = TextVisitFactory.removeFormattingCodes(msg);
-			String name = StringUtils.substringBetween(string, "<", ">");
-			return name == null ? "[UNSPECIFIED]" : name;
-		});
-		this.shouldSaveOnDisconnection = true;
-		this.messageCount++;
-		this.endTime = timestamp;
+	public Deque<Line> getMessages() {
+		return this.messages;
 	}
 	
-	public Deque<Line> getAllMessages() {
-		return this.cachedChatLogs;
+	public LinkedHashMap<UUID, String> getSendersByUuid() {
+		return this.uuidToName;
 	}
 	
-	public void end() {
-		this.finalSaving = true;
-	}
-	
-	/**
-	 * Only guaranteed to be accurate when invoked on terminated or deserialized Sessions.
-	 */
-	private Summary toSummary() {
-		return new Summary(this);
-	}
-	
-	private boolean writeSummary() {
-		return this.toSummary().write();
+	public Summary getMetadata() {
+		return this.metadata;
 	}
 	
 	public static List<Summary> getSessionSummaries() {
@@ -233,70 +135,6 @@ public final class Session {
 		}
 		
 		return list;
-	}
-	
-	private static int allocateId() {
-		Properties prop = new Properties();
-		File optionFile = FabricLoader.getInstance().getConfigDir().resolve("permanent-chat-logs.prop").toFile();
-		if(!optionFile.exists()) {
-			try {
-				optionFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		try (FileReader fr = new FileReader(optionFile)) {
-			prop.load(fr);
-		} catch (IOException e) {
-			LOGGER.error("Unable to load configurations.");
-			e.printStackTrace();
-		}
-		
-		String nextIdStr = prop.computeIfAbsent("nextId", (k) -> "0").toString();
-		int id;
-		if(!nextIdStr.matches("\\d+")) {
-			LOGGER.error("Invalid next ID: {}", nextIdStr);
-			id = findNextAvailableId(0);
-		} else {
-			id = Integer.parseInt(nextIdStr);
-			if(!checkAvailability(id)) {
-				LOGGER.error("Occupied ID: {}", nextIdStr);
-				id = findNextAvailableId(id);
-			}
-		}
-		
-		prop.put("nextId", Integer.toString(id + 1));
-		try (FileWriter fw = new FileWriter(optionFile)) {
-			prop.store(fw, "");
-		} catch (IOException e) {
-			LOGGER.error("Unable to save configurations.");
-			e.printStackTrace();
-		}
-		
-		return id;
-	}
-
-	private static boolean checkAvailability(int id) {
-		// TODO Packed chat logs
-		return !new File(CHATLOG_FOLDER, String.format("log-%d.json", id)).exists();
-	}
-	
-	/**
-	 * @param from Should not be available.
-	 */
-	private static int findNextAvailableId(int from) {
-		while(!checkAvailability(++from));
-		return from;
-	}
-	
-	private static File id2File(int id) {
-		return new File(CHATLOG_FOLDER, String.format("log-%d.json", id));
-	}
-	
-	public void addEvent(Event e) {
-		this.cachedChatLogs.add(e);
-		this.messageCount++;
 	}
 	
 	private static boolean backupIndex() {
@@ -329,7 +167,7 @@ public final class Session {
 		List<Summary> summaries = getSessionSummaries();
 		IntSet deleted = new IntOpenHashSet();
 		for (int id : ids) {
-			if (id2File(id).delete()) {
+			if (SessionUtils.id2File(id).delete()) {
 				deleted.add(id);
 			}
 		}
@@ -352,6 +190,32 @@ public final class Session {
 	}
 	
 	/**
+	 * @return The count of sessions being successfully deleted
+	 */
+	public static boolean updateSummary(Summary summary) {
+		backupIndex();
+		List<Summary> summaries = getSessionSummaries();
+		INDEX.delete();
+		try (PrintWriter pw = new PrintWriter(new FileWriter(INDEX))) {
+			// This solution seems to be inefficient...
+			for (Summary s : summaries) {
+				// Avoid detached session summaries & sessions
+				if (s.id != summary.id) {
+					s.write(pw);
+				} else {
+					summary.write(pw);
+				}
+			}
+			
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			restoreIndex();
+			return false;
+		}
+	}
+	
+	/**
 	 * The returned list should be considered immutable.
 	 */
 	public List<Session> split(List<Line> delimiters) {
@@ -363,10 +227,11 @@ public final class Session {
 		delimiters = new ArrayList<>(delimiters);
 		delimiters.add(null);
 		// XXX Discard original session v.s. 3x memory load
-		List<Line> remaining = new LinkedList<>(this.cachedChatLogs);
+		List<Line> remaining = new LinkedList<>(this.messages);
 		List<Session> result = new ArrayList<>();
 		Iterator<Line> itr = delimiters.iterator();
 		Line nextBorder;
+		boolean first = true;
 		while (itr.hasNext()) {
 			nextBorder = itr.next();
 			ArrayDeque<Line> seg = new ArrayDeque<>();
@@ -378,9 +243,13 @@ public final class Session {
 				continue;
 			}
 			
-			Session session = new Session(seg, this.uuidToName, this.saveName, allocateId(), 
-					seg.getFirst().time, seg.getLast().time, this.timeZone, this.multiplayer, this.version);
-			session.messageCount = seg.size();
+			// XXX: Gap time?
+			Summary ori = this.metadata;
+			long startTime = first ? ori.startTime : seg.getFirst().time;
+			long endTime = itr.hasNext() ? seg.getLast().time : ori.endTime;
+			Summary metadata = new Summary(SessionUtils.allocateId(), ori.saveName, startTime, endTime, 
+					seg.size(), ori.timeZone, ori.multiplayer, Version.LATEST);
+			Session session = new Session(seg, this.uuidToName, metadata);
 			result.add(session);
 		}
 		
@@ -407,64 +276,17 @@ public final class Session {
 		return this.split(List.of(start, end)).get(1);
 	}
 	
+	public SessionRecorder continueRecording() {
+		return new SessionRecorder(this); 
+	}
 	
 	/**
-	 * Save a manually constructed {@code Session}, usually created by {@link split(List)}. Shouldn't be invoked
-	 * on {@code Session}s created while playing.
+	 * Save a manually constructed {@code Session}, usually created by {@link split(List)}.
 	 */
 	public void save() {
-		this.end();
-		try {
-			AutosaveWorker saver = new AutosaveWorker(false);
-			saver.start();
-			saver.join();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		this.continueRecording().end0();
 	}
 	
-	public static void tryRestoreUnsaved() {
-		if (current != null) {
-			current.end();
-			if (current.autosaveWorker != null && current.autosaveWorker.isAlive()) {
-				try {
-					current.autosaveWorker.join();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		File unsaved = getUnsaved();
-		if (unsaved == null) {
-			return;
-		}
-		
-		boolean success = false;
-		Version[] loaders = Version.values();
-		// Iterate in an reversed order to ensure that newer versions are prioritized.
-		Summary s = null;
-		for (int i = loaders.length - 1; i >= 0; i--) {
-			Version ver = loaders[i];
-			if ((s = ver.inferMetadata(unsaved)) != null) {
-				break;
-			}
-		}
-		
-		if (s != null) {
-			success = s.write();
-		}
-		
-		if (!success) {
-			SystemToast warning = new SystemToast(new SystemToast.Type(), 
-					I18N.translateAsText("gui.restore.failure"), 
-					I18N.translateAsText("gui.restore.failure.desc"));
-			MinecraftClient.getInstance().getToastManager().add(warning);
-		}
-		
-		markUnsaved(null);
-	}
-
 	public static class Line {
 		public final UUID sender;
 		public final Text message;
@@ -506,7 +328,7 @@ public final class Session {
 			return new Proto(sender, Text.Serialization.fromJson(msgJson, DynamicRegistryManager.EMPTY), time);
 		}
 		
-		public static Line parseFull(String json) {
+		static Line parseFull(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
 			return new Line(UUID.fromString(jo.get("sender").getAsString()), 
@@ -514,7 +336,7 @@ public final class Session {
 					jo.get("time").getAsLong());
 		}
 
-		public JsonObject toJson() {
+		JsonObject toJson() {
 			JsonObject line = new JsonObject();
 			line.addProperty("sender", this.sender.toString());
 			line.addProperty("msgJson", Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
@@ -556,7 +378,7 @@ public final class Session {
 			return 0xFF000000 | this.markColor;
 		}
 
-		public static Line parseEvent(String json) {
+		static Line parseEvent(String json) {
 			@SuppressWarnings("deprecation")
 			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
 			return new Event(Text.Serialization.fromJson(jo.get("msgJson").getAsString(), 
@@ -566,11 +388,89 @@ public final class Session {
 		}
 		
 		@Override
-		public JsonObject toJson() {
+		JsonObject toJson() {
 			JsonObject json = new JsonObject();
 			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
 			json.addProperty("time", this.time);
 			json.addProperty("color", this.markColor);
+			return json;
+		}
+	}
+	
+	public static final class Title extends Line {
+		private final Type type;
+
+		public Title(Text title, long time, Title.Type type) {
+			super(Util.NIL_UUID, title, time);
+			this.type = type;
+		}
+		
+		@Override
+		public int getMarkColor() {
+			return 0xFF000000 | this.type.color;
+		}
+
+		static Line parseTitle(String json) {
+			@SuppressWarnings("deprecation")
+			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
+			return new Title(Text.Serialization.fromJson(jo.get("msgJson").getAsString(), DynamicRegistryManager.EMPTY),
+					jo.get("time").getAsLong(), 
+					Type.valueOf(jo.get("type").getAsString()));
+		}
+		
+		@Override
+		JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("msgJson", Text.Serialization.toJsonString(this.message, DynamicRegistryManager.EMPTY));
+			json.addProperty("time", this.time);
+			json.addProperty("type", this.type.name());
+			return json;
+		}
+		
+		public enum Type {
+			TITLE(0x000000), 
+			SUBTITLE(0x9F9F9F), 
+			OVERLAY(0xFFFFFF);
+			
+			private final int color;
+
+			private Type(int color) {
+				this.color = color;
+			}
+		}
+	}
+	
+	public static class WorldIndicator extends Line {
+		private final boolean multiplayer;
+		private final String saveName;
+		
+		protected WorldIndicator(String saveName, boolean multiplayer, long time) {
+			super(Util.NIL_UUID, 
+					I18N.translateAsText(multiplayer ? "mark.worldindicate" : "mark.worldindicate.mp", saveName), 
+					time);
+			this.saveName = saveName;
+			this.multiplayer = multiplayer;
+		}
+		
+		@Override
+		public int getMarkColor() {
+			return 0xFFB86960;
+		}
+
+		static Line parse(String json) {
+			@SuppressWarnings("deprecation")
+			JsonObject jo = new JsonParser().parse(json).getAsJsonObject();
+			return new WorldIndicator(jo.get("save").getAsString(), 
+					jo.get("multiplayer").getAsBoolean(), 
+					jo.get("time").getAsLong());
+		}
+
+		@Override
+		JsonObject toJson() {
+			JsonObject json = new JsonObject();
+			json.addProperty("time", this.time);
+			json.addProperty("save", this.saveName);
+			json.addProperty("multiplayer", this.multiplayer);
 			return json;
 		}
 	}
@@ -584,20 +484,8 @@ public final class Session {
 		public final TimeZone timeZone;
 		public final Version version;
 		public final boolean multiplayer;
-		
-		private Summary(Session s) {
-			this.id = s.id;
-			this.saveName = s.saveName;
-			this.startTime = s.startTime;
-			this.endTime = s.endTime;
-			this.size = s.messageCount;
-			this.timeZone = s.timeZone;
-			this.version = s.version;
-			this.multiplayer = s.multiplayer;
-		}
-		
 
-		private Summary(int id, String saveName, long startTime, long endTime, long size, TimeZone timeZone,
+		Summary(int id, String saveName, long startTime, long endTime, long size, TimeZone timeZone,
 				boolean multiplayer, Version version) {
 			this.id = id;
 			this.saveName = saveName;
@@ -609,25 +497,7 @@ public final class Session {
 			this.multiplayer = multiplayer;
 		}
 		
-		protected boolean write() {
-			try(PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))){
-				this.write(pw);
-				return true;
-			} catch (IOException e) {
-				LOGGER.error("Failed to write index!");
-				e.printStackTrace();
-				return false;
-			}
-		}
-
-		protected void write(PrintWriter pw) throws IOException {
-			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s,%s", 
-					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
-					this.endTime, this.size, this.timeZone.getID(), 
-					this.version.name(), this.multiplayer));
-		}
-		
-		protected Summary(String idxLine) {
+		Summary(String idxLine) {
 			Iterator<String> itr = StringUtil.unescapeCsvFields(idxLine)
 					.stream()
 					.map(CharSequence::toString)
@@ -656,8 +526,26 @@ public final class Session {
 			}
 		}
 		
+		protected boolean write() {
+			try(PrintWriter pw = new PrintWriter(new FileWriter(INDEX, true))){
+				this.write(pw);
+				return true;
+			} catch (IOException e) {
+				LOGGER.error("Failed to write index!");
+				e.printStackTrace();
+				return false;
+			}
+		}
+
+		protected void write(PrintWriter pw) throws IOException {
+			pw.println(String.format("%d,%s,%d,%d,%d,%s,%s,%s", 
+					this.id, StringUtil.escapeCsv(this.saveName), this.startTime, 
+					this.endTime, this.size, this.timeZone.getID(), 
+					this.version.name(), this.multiplayer));
+		}
+		
 		public final Session load() {
-			if(checkAvailability(this.id)) {
+			if(SessionUtils.checkAvailability(this.id)) {
 				// Not exist
 				return null;
 			} else {
@@ -665,6 +553,31 @@ public final class Session {
 			}
 		}
 		
+		// Fixes: Filtered session lists are always empty after full-text searches
+		@Override
+		public int hashCode() {
+			return Objects.hash(this.endTime, this.id, this.multiplayer, this.saveName, this.size, 
+					this.startTime, this.timeZone, this.version);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (obj == null) {
+				return false;
+			}
+			if (getClass() != obj.getClass()) {
+				return false;
+			}
+			Summary other = (Summary) obj;
+			return this.endTime == other.endTime && this.id == other.id && this.multiplayer == other.multiplayer
+					&& Objects.equals(this.saveName, other.saveName) && this.size == other.size 
+					&& this.startTime == other.startTime && Objects.equals(this.timeZone, other.timeZone) 
+					&& this.version == other.version;
+		}
+
 		public final String getFormattedStartTime() {
 			return Instant.ofEpochMilli(this.startTime)
 					.atZone(this.timeZone.toZoneId())
@@ -672,16 +585,11 @@ public final class Session {
 		}
 	}
 	
-	@FunctionalInterface
-	private interface RunnableWithIOException {
-		void run() throws IOException;
-	}
-	
 	public static enum Version {
 		EARLY_RELEASES {
 			@Override
 			protected Session load(Summary summary) {
-				File file = id2File(summary.id);
+				File file = SessionUtils.id2File(summary.id);
 				List<Line.Proto> protos = null;
 				LinkedHashMap<UUID, String> uuidToName = null;
 				Int2ObjectMap<UUID> uuids = new Int2ObjectOpenHashMap<>();
@@ -695,7 +603,7 @@ public final class Session {
 							protos = new ArrayList<>();
 							jr.beginArray();
 							List<Line.Proto> fuckLambda = protos = new ArrayList<>();
-							wrapTextSerialization(() -> {
+							SessionUtils.wrapTextSerialization(() -> {
 								while(jr.hasNext()) {
 									fuckLambda.add(Line.parse(jr));
 								}
@@ -774,46 +682,29 @@ public final class Session {
 				ArrayDeque<Line> currentChatLogs = protos.stream()
 						.map((p) -> p.toLine(uuids))
 						.<ArrayDeque<Line>>collect(ArrayDeque<Line>::new, ArrayDeque::add, (r1, r2) -> {});
-				return new Session(currentChatLogs, uuidToName, summary.saveName, summary.id, 
-						summary.startTime, summary.endTime, summary.timeZone, summary.multiplayer, 
-						Version.EARLY_RELEASES);
-			}
-
-			@Override
-			protected void serialize(Session session, int id) {
-				throw new UnsupportedOperationException("This format is outdated!");
+				return new Session(currentChatLogs, uuidToName, summary);
 			}
 		}, 
 		V_20240826 {
 			@Override
 			protected Session load(Summary summary) {
-				File file = id2File(summary.id);
-				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
-						new BufferedInputStream(new FileInputStream(file)))))) {
-					String metaLine = s.nextLine();
-					if (metaLine.startsWith("{")) {
-						// Version info may be effectively lost from metadata in 0.3.0
-						s.close();
-						return EARLY_RELEASES.load(summary);
-					}
-					
-					Iterator<String> itr = StringUtil.unescapeCsvFields(metaLine)
-							.stream()
-							.map(CharSequence::toString)
-							.iterator();
-					long endTime = summary.endTime;
-					int id = Integer.parseInt(itr.next());
-					String saveName = itr.next();
-					long startTime = Long.parseLong(itr.next());
-					TimeZone timeZone = TimeZone.getTimeZone(itr.next());
+				File file = SessionUtils.id2File(summary.id);
+				try (InputStreamReader s = new InputStreamReader(new GZIPInputStream(
+						new BufferedInputStream(new FileInputStream(file))))) {
+					// Skip meta-line
+					readLine(s);
 					ArrayDeque<Line> lines = new ArrayDeque<>();
 					LinkedHashMap<UUID, String> namesByUuid = new LinkedHashMap<>();
-					while(s.hasNextLine()) {
+					while (true) {
 						try {
-							String l = s.nextLine();
+							String l = readLine(s);
+							if (l == null) {
+								break;
+							}
+							
 							switch(l.charAt(0)) {
 							case 'M':
-								wrapTextSerialization(() -> {
+								SessionUtils.wrapTextSerialization(() -> {
 									try {
 										lines.add(Line.parseFull(l.substring(1)));
 									} catch (Exception e) {
@@ -831,8 +722,18 @@ public final class Session {
 
 								break;
 							case 'E':
-								wrapTextSerialization(() -> {
+								SessionUtils.wrapTextSerialization(() -> {
 									lines.add(Event.parseEvent(l.substring(1)));
+								});
+								break;
+							case 'W':
+								SessionUtils.wrapTextSerialization(() -> {
+									lines.add(WorldIndicator.parse(l.substring(1)));
+								});
+								break;
+							case 'T':
+								SessionUtils.wrapTextSerialization(() -> {
+									lines.add(Title.parseTitle(l.substring(1)));
 								});
 								break;
 							}
@@ -846,18 +747,12 @@ public final class Session {
 						}
 					}
 
-					return new Session(lines, namesByUuid, saveName, id, startTime, endTime, timeZone, 
-							summary.multiplayer, this);
+					return new Session(lines, namesByUuid, summary);
 				} catch (Exception e) {
 					LOGGER.error("Failed to load chatlog!");
 					e.printStackTrace();
 					return null;
 				}
-			}
-
-			@Override
-			protected void serialize(Session session, int id) {
-				// Chat logs are saved while playing, so no extra processes are needed.
 			}
 			
 			@Override
@@ -874,7 +769,7 @@ public final class Session {
 					int msgCnt = 0;
 					while(s.hasNextLine()) {
 						String l = s.nextLine();
-						if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
+						if (l.charAt(0) == 'M' || l.charAt(0) == 'E'  || l.charAt(0) == 'T') {
 							msgCnt++;
 						}
 					}
@@ -887,23 +782,17 @@ public final class Session {
 			}
 		}, 
 		V_20241011 {
-
 			@Override
 			protected Session load(Summary summary) {
 				return V_20240826.load(summary);
 			}
-
-			@Override
-			protected void serialize(Session session, int id) {
-				V_20240826.serialize(session, id);
-			}
 			
 			@Override
 			protected Summary inferMetadata(File unsaved) {
-				try (Scanner s = new Scanner(new InputStreamReader(new GZIPInputStream(
-						new BufferedInputStream(new FileInputStream(unsaved)))))) {
+				try (InputStreamReader s = new InputStreamReader(new GZIPInputStream(
+						new BufferedInputStream(new FileInputStream(unsaved))))) {
 					long endTime = unsaved.lastModified();
-					String metaLine = s.nextLine();
+					String metaLine = readLine(s);
 					Iterator<String> itr = StringUtil.unescapeCsvFields(metaLine)
 							.stream()
 							.map(CharSequence::toString)
@@ -914,10 +803,18 @@ public final class Session {
 					TimeZone timeZone = TimeZone.getTimeZone(itr.next());
 					boolean multiplayer = itr.hasNext() ? Boolean.valueOf(itr.next()) : false;
 					int msgCnt = 0;
-					while(s.hasNextLine()) {
-						String l = s.nextLine();
-						if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
-							msgCnt++;
+					while (true) {
+						try {
+							String l = readLine(s);
+							if (l == null) {
+								break;
+							}
+							
+							if (l.charAt(0) == 'M' || l.charAt(0) == 'E') {
+								msgCnt++;
+							}
+						} catch (IOException e) {
+							break;
 						}
 					}
 					
@@ -933,88 +830,29 @@ public final class Session {
 		public static final Version LATEST = V_20241011;
 		
 		protected abstract Session load(Summary summary);
-		protected abstract void serialize(Session session, int id);
-		
 
 		protected Summary inferMetadata(File unsaved) {
 			return null;
 		}
-	}
-	
-	private final class AutosaveWorker extends Thread {
-		private PrintWriter chatlogWriter;
-		private int lastAutoSaveSendererCount = 0;
-		private int finalLoops = 2;
-		private final File chatlogFile = id2File(Session.this.id);
-		private final boolean updatesEndtimeOnClosing;
-
-		protected AutosaveWorker(boolean updatesEndtimeOnClosing) {
-			super("ChatLog Autosave Worker");
-			PrintWriter temp;
+		
+		// Not using 
+		private static String readLine(Reader r) throws IOException {
+			StringBuilder line = new StringBuilder();
 			try {
-				OutputStreamWriter backend = new OutputStreamWriter(new GZIPOutputStream(
-						new BufferedOutputStream(new FileOutputStream(this.chatlogFile)), true));
-				temp = new PrintWriter(backend);
-				temp.println(String.format("%d,%s,%d,%s,%s", 
-						Session.this.id, StringUtil.escapeCsv(Session.this.saveName), 
-						Session.this.startTime, Session.this.timeZone.getID(), Session.this.multiplayer));
-			} catch (IOException e) {
-				LOGGER.error("Failed to create temp file for chat logs!");
-				e.printStackTrace();
-				throw new RuntimeException();
-			}
-			
-			this.chatlogWriter = temp;
-			this.updatesEndtimeOnClosing = updatesEndtimeOnClosing;
-		}
-		
-		public AutosaveWorker() {
-			this(true);
-		}
-		
-		@Override
-		public void run() {
-			while (!Session.this.finalSaving || this.finalLoops-- > 0) {
-				try {
-					wrapTextSerialization(() -> {
-						while (!Session.this.cachedChatLogs.isEmpty()) {
-							Line l = Session.this.cachedChatLogs.pollFirst();
-							this.chatlogWriter.println((l instanceof Event ? "E" : "M") + l.toJson());
-						}
-					});
-					List<Map.Entry<UUID, String>> senders = new ArrayList<>(Session.this.uuidToName.entrySet());
-					List<Map.Entry<UUID, String>> sendersToSave = senders
-							.subList(this.lastAutoSaveSendererCount, senders.size());
-					this.lastAutoSaveSendererCount = senders.size();
-					for(Map.Entry<UUID, String> e : sendersToSave) {
-						this.chatlogWriter.println(String.format("S%s,%s", 
-								e.getKey().toString(), 
-								StringUtil.escapeCsv(e.getValue())));
-					}
-					
-					this.chatlogWriter.flush();
-					Thread.sleep(Options.realtimeChatlogSaving ? 0 : Options.autoSaveIntervalInMs);
-				} catch (Exception e) {
-					LOGGER.error("Failed to perform autosave!");
-					e.printStackTrace();
+				int c = r.read();
+				while (c != '\n' && c != '\r' && c != -1) {
+					line.append((char) c);
+					c = r.read();
 				}
+				
+				// Handle "\r\n" sequence, a little bit nasty solution
+				if (c == '\r') {
+					r.skip(1);
+				}
+			} catch (EOFException e) {
 			}
 			
-			this.chatlogWriter.close();
-			if (Session.this.messageCount == 0) {
-				this.chatlogFile.delete();
-				markUnsaved(null);
-				return;
-			}
-			
-			if (updatesEndtimeOnClosing) {
-				Session.this.endTime = System.currentTimeMillis();
-			}
-			
-			Session.this.writeSummary();
-			Version.LATEST.serialize(Session.this, Session.this.id);
-			LOGGER.info("Saved chatlog to: {}", this.chatlogFile);
-			markUnsaved(null);
+			return line.length() == 0 ? null : line.toString();
 		}
 	}
 }

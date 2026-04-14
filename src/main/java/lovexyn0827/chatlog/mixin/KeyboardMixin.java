@@ -8,9 +8,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import lovexyn0827.chatlog.Session;
 import lovexyn0827.chatlog.gui.NewEventMarkerScreen;
 import lovexyn0827.chatlog.i18n.I18N;
+import lovexyn0827.chatlog.session.Session;
+import lovexyn0827.chatlog.session.SessionRecorder;
 import net.minecraft.client.Keyboard;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
@@ -24,12 +25,12 @@ public abstract class KeyboardMixin {
 	@Inject(method = "onKey", at = @At("RETURN"))
 	private void handleKey(long window, int key, int scancode, int i, int j, CallbackInfo ci) {
 		boolean isBeingPressed = i == GLFW.GLFW_PRESS;
-		if(key == 'M' && Screen.hasControlDown() && isBeingPressed && Session.current != null) {
+		if(key == 'M' && Screen.hasControlDown() && isBeingPressed && SessionRecorder.current() != null) {
 			if (Screen.hasAltDown()) {
 				Text title = I18N.translateAsText("gui.marker.title");
 				Session.Event event = new Session.Event(title, 
 						System.currentTimeMillis(), DyeColor.RED.getSignColor());
-				Session.current.addEvent(event);
+				SessionRecorder.current().addEvent(event);
 				this.client.inGameHud.setOverlayMessage(title, true);
 				return;
 			}

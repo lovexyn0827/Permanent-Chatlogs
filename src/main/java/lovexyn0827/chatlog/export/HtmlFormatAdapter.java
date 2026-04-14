@@ -19,10 +19,10 @@ import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 
-import lovexyn0827.chatlog.Session;
-import lovexyn0827.chatlog.Session.Line;
-import lovexyn0827.chatlog.Session.Summary;
 import lovexyn0827.chatlog.i18n.I18N;
+import lovexyn0827.chatlog.session.Session;
+import lovexyn0827.chatlog.session.Session.Line;
+import lovexyn0827.chatlog.session.Session.Summary;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.metadata.ModMetadata;
 import net.minecraft.client.MinecraftClient;
@@ -61,7 +61,7 @@ final class HtmlFormatAdapter extends FormatAdapter {
 		this.spanIds = new ArrayList<>();
 		this.hoverEventsBySpan = new HashMap<>();
 		this.clickEventsBySpan = new HashMap<>();
-		this.session.getAllMessages().forEach((l) -> {
+		this.session.getMessages().forEach((l) -> {
 			try {
 				this.handleLine(l);
 			} catch (XMLStreamException e) {
