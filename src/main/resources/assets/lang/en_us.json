@@ -74,7 +74,10 @@
 		"opt.gameSessionIndicator.desc": "Insert markers for events like save entrance or server connection to chat logs when `newSessionPerMcLaunch` is enabled.", 
 		"opt.sessionListPaging.desc": "List chating session in pages.",
 		"opt.sessionsPerPage.desc": "Number of sessions displayed within a page.",  
-		"opt.messageFinderFilteringMode.desc": "If enabled, only messages meeting the given criteria will be displayed when searching, otherwise, all messages are kept, with selected ones highlighten.", 
+		"opt.messageFinderFilteringMode.desc": "If enabled, only messages meeting the given criteria will be displayed when searching, otherwise, all messages are kept, with selected ones highlighten.",
+		"opt.saveTitles.desc": "If enabled, displayed titles will be saved to the chat log.",
+		"opt.saveSubtitles.desc": "If enabled, displayed subtitles will be saved to the chat log.",
+		"opt.saveOverlays.desc": "If enabled, displayed overlays will be saved to the chat log.",
 	
 		"export.this.html.title": "Chat log from %s (%s messages, recorded at %s)", 
 		"export.this.html.footer1": "Exported at %s, with ", 

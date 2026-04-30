@@ -1,5 +1,6 @@
 package lovexyn0827.chatlog.mixin;
 
+import lovexyn0827.chatlog.config.Options;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -16,7 +17,9 @@ public class InGameHudMixin {
 			at = @At("HEAD")
 	)
 	private void onOverlayMessage(Text message, boolean tinted, CallbackInfo ci) {
-		SessionRecorder.current().addOverlayMessage(message, tinted, System.currentTimeMillis());
+		if (Options.saveOverlays) {
+			SessionRecorder.current().addOverlayMessage(message, tinted, System.currentTimeMillis());
+		}
 	}
 	
 	@Inject(
@@ -24,7 +27,9 @@ public class InGameHudMixin {
 			at = @At("HEAD")
 	)
 	private void onTitle(Text message, CallbackInfo ci) {
-		SessionRecorder.current().addTitle(message, System.currentTimeMillis());
+		if (Options.saveTitles) {
+			SessionRecorder.current().addTitle(message, System.currentTimeMillis());
+		}
 	}
 	
 	@Inject(
@@ -32,6 +37,8 @@ public class InGameHudMixin {
 			at = @At("HEAD")
 	)
 	private void onSubtitle(Text message, CallbackInfo ci) {
-		SessionRecorder.current().addSubtitle(message, System.currentTimeMillis());
+		if (Options.saveSubtitles) {
+			SessionRecorder.current().addSubtitle(message, System.currentTimeMillis());
+		}
 	}
 }

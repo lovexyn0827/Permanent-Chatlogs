@@ -41,6 +41,15 @@ public final class Options {
 
 	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
 	public static boolean messageFinderFilteringMode = true;
+
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean saveTitles = true;
+
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean saveSubtitles = true;
+
+	@Option(type = OptionType.BOOLEAN, defaultValue = "true")
+	public static boolean saveOverlays = true;
 	
 	private Options() {}
 	
