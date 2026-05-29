@@ -67,6 +67,11 @@ public class I18N {
 				return false;
 			}
 		} catch (Exception e) {
+			if (currentLanguage == null) {
+				currentLanguage = EN_US;
+				// Fall-back
+			}
+			
 			e.printStackTrace();
 			return false;
 		}

@@ -75,6 +75,9 @@
 		"opt.sessionListPaging.desc": "按页显示聊天记录。",
 		"opt.sessionsPerPage.desc": "每页显示的聊天会话个数。",  
 		"opt.messageFinderFilteringMode.desc": "若启用，则搜索时只显示符合条件的消息；否则，保持显示完整聊天记录，并高亮被选中的消息。", 
+		"opt.saveSubtitles.desc": "保存subtitle消息", 
+		"opt.saveTitles.desc": "保存title消息", 
+		"opt.saveOverlays.desc": "保存overlay消息", 
 		
 		"export.this.html.title": "来自 %s 的聊天记录（%d条消息，录制于%s）", 
 		"export.this.html.footer1": "导出于%s，使用", 
